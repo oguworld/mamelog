@@ -1,0 +1,17 @@
+.env
+node_modules/
+logs/
+*.log
+data/
+!data/.gitkeep
+
+# iOS署名関連(絶対にコミットしない)
+*.p12
+*.p12.b64
+*.pem
+*.key
+*.mobileprovision
+*.cer
+
+# ios-app/ios/ はCI上でnpx cap add iosにより毎回生成される(コミット対象外)
+ios-app/ios/

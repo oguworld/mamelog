@@ -1,0 +1,17 @@
+{
+  "name": "mamelog",
+  "version": "1.0.0",
+  "description": "Bean Diary - コーヒー豆と日々の記録PWA",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.98.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.7.0"
+  }
+}
