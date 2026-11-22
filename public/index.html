@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="ja" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F6F0E8">
+<title>Bean Diary</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+<div id="app">
+
+  <!-- ══════════════════════ 豆一覧 ══════════════════════ -->
+  <section class="screen" id="screen-beans">
+    <div class="screen-header">
+      <h1>豆</h1>
+      <div class="header-actions">
+        <span class="header-sub" id="beans-count">0 種類の豆</span>
+        <button class="icon-btn" aria-label="設定" onclick="if(!_touchGuard()) openSettings()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="search-bar">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A6455" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input type="text" id="bean-search" placeholder="名前・産地・お店で検索" oninput="renderBeansList()">
+    </div>
+    <div class="chip-row" id="roast-filter-row"></div>
+    <div class="screen-scroll-content" id="beans-list"></div>
+    <div class="empty-state" id="beans-empty" style="display:none">
+      <div class="empty-title">まだ豆が登録されていません</div>
+      <div class="empty-desc">右下の＋ボタンから<br>最初の豆を登録してみましょう</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ 日々 ══════════════════════ -->
+  <section class="screen" id="screen-days">
+    <div class="screen-header">
+      <div>
+        <h1>日々</h1>
+        <div class="header-sub">豆と過ごした毎日のひとこと</div>
+      </div>
+      <button class="icon-btn" aria-label="設定" onclick="if(!_touchGuard()) openSettings()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+    <div class="screen-scroll-content">
+      <div class="quick-input-bar">
+        <button class="bean-chip-select" id="days-bean-select" onclick="if(!_touchGuard()) openBeanPicker('days')">
+          <span class="label" id="days-bean-select-label">豆を選ぶ</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7A6455" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <input type="text" id="days-entry-text" placeholder="今日の一杯、どうだった?">
+        <button class="round-btn ghost" aria-label="写真を添える" onclick="if(!_touchGuard()) pickPhoto('days')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        </button>
+        <button class="round-btn primary" aria-label="記録する" onclick="if(!_touchGuard()) submitQuickEntry('days')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l14-7-5 14-2-6z"/></svg>
+        </button>
+      </div>
+      <div id="days-list"></div>
+      <div class="empty-state" id="days-empty" style="display:none">
+        <div class="empty-title">まだ日々の記録がありません</div>
+        <div class="empty-desc">豆と過ごした瞬間を<br>ひとことメモしてみましょう</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ 豆の詳細 ══════════════════════ -->
+  <section class="screen" id="screen-bean-detail">
+    <div class="detail-hero" id="detail-hero">
+      <button class="icon-btn on-photo back" aria-label="戻る" onclick="if(!_touchGuard()) switchNav(_lastMainTab)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <button class="icon-btn on-photo edit" aria-label="豆の情報を編集" onclick="if(!_touchGuard()) openAddForm(_currentBeanId)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>
+      </button>
+    </div>
+    <div class="detail-sheet">
+      <div class="detail-title-row">
+        <div>
+          <h1 id="detail-name"></h1>
+          <div class="detail-meta-line" id="detail-meta"></div>
+        </div>
+        <div class="detail-rating" id="detail-rating"></div>
+      </div>
+      <div class="taste-chip-row" id="detail-taste"></div>
+      <div class="detail-entries-heading">
+        <h2>この豆の日々</h2>
+        <span class="header-sub" id="detail-entries-sub"></span>
+      </div>
+      <div class="timeline" id="detail-timeline"></div>
+    </div>
+    <div class="detail-quick-input">
+      <div class="quick-input-bar">
+        <input type="text" id="detail-entry-text" placeholder="気づいたことをひとこと…">
+        <button class="round-btn ghost" aria-label="写真を添える" onclick="if(!_touchGuard()) pickPhoto('detail')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        </button>
+        <button class="round-btn primary" aria-label="記録する" onclick="if(!_touchGuard()) submitQuickEntry('detail')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l14-7-5 14-2-6z"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ 豆を追加/編集 ══════════════════════ -->
+  <section class="screen" id="screen-add">
+    <div class="add-header">
+      <button class="link-btn" onclick="if(!_touchGuard()) closeAddForm()">キャンセル</button>
+      <h1 id="add-title">豆を追加</h1>
+      <button class="link-btn primary" onclick="if(!_touchGuard()) saveBean()">保存</button>
+    </div>
+    <div class="add-form">
+      <div class="photo-row">
+        <button class="photo-preview" id="add-photo-preview" onclick="if(!_touchGuard()) pickPhoto('add')">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7A6455" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+          <span class="cam-fab" aria-hidden="true" style="display:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+          </span>
+        </button>
+        <div class="identify-banner" id="identify-banner" style="display:none"></div>
+        <button class="identify-trigger" id="identify-trigger" style="display:none" onclick="if(!_touchGuard()) runIdentify()">写真から情報を自動入力</button>
+      </div>
+
+      <div class="field">
+        <label for="add-name">豆の名前</label>
+        <input type="text" id="add-name" placeholder="例: イルガチェフェ G1">
+      </div>
+
+      <div class="field-grid">
+        <div class="field">
+          <label for="add-shop">お店</label>
+          <input type="text" id="add-shop">
+        </div>
+        <div class="field">
+          <label for="add-origin">産地</label>
+          <input type="text" id="add-origin">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>焙煎度</label>
+        <div class="pill-row" id="add-roast-row"></div>
+      </div>
+
+      <div class="field">
+        <label>精製方法</label>
+        <div class="pill-row" id="add-process-row"></div>
+      </div>
+
+      <div class="field-grid">
+        <div class="field">
+          <label for="add-purchase-date">購入日</label>
+          <input type="date" id="add-purchase-date">
+        </div>
+        <div class="field">
+          <label for="add-brew">淹れ方</label>
+          <input type="text" id="add-brew" placeholder="例: ハンドドリップ 15g/240ml">
+        </div>
+      </div>
+
+      <div class="taste-card">
+        <div class="taste-card-head"><span class="label">味の評価</span><span class="hint">あとで調整できます</span></div>
+        <div id="add-taste-sliders"></div>
+      </div>
+
+      <div class="field">
+        <label>総合評価</label>
+        <div class="rating-input" id="add-rating"></div>
+      </div>
+
+      <div class="ai-meta-box" id="add-ai-meta" style="display:none"></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ 設定 ══════════════════════ -->
+  <section class="screen" id="screen-settings">
+    <div class="screen-header" style="padding:52px 12px 10px;align-items:center;gap:4px">
+      <button class="icon-btn" aria-label="戻る" style="width:44px;height:44px" onclick="if(!_touchGuard()) switchNav(_lastMainTab)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h1>設定</h1>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">写真からの自動入力</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <span class="label">自動入力を使う</span>
+          <button class="toggle-switch" id="toggle-autofill" onclick="if(!_touchGuard()) toggleSetting('autoFillEnabled')"><span class="knob"></span></button>
+        </div>
+        <div class="settings-divider"></div>
+        <div class="settings-row">
+          <span class="label">味の評価も推定して入れる</span>
+          <button class="toggle-switch" id="toggle-autofill-taste" onclick="if(!_touchGuard()) toggleSetting('autoFillTaste')"><span class="knob"></span></button>
+        </div>
+      </div>
+      <div class="settings-desc">豆を判別するため、写真を外部のAIサービスに送信します。オフにすると写真は端末内だけで使われます。</div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">表示</div>
+      <div class="settings-card">
+        <button class="settings-row" onclick="if(!_touchGuard()) cycleThemeSetting()">
+          <span class="label">テーマ</span>
+          <span class="value" id="settings-theme-value">自動(端末に合わせる)</span>
+        </button>
+        <div class="settings-divider"></div>
+        <button class="settings-row" onclick="if(!_touchGuard()) cycleStartupScreen()">
+          <span class="label">起動時に開く画面</span>
+          <span class="value" id="settings-startup-value">豆</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">データ</div>
+      <div class="settings-card">
+        <button class="settings-row" onclick="if(!_touchGuard()) exportBackup()">
+          <span class="label">バックアップを書き出す</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A6455" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+        <div class="settings-divider"></div>
+        <button class="settings-row" onclick="if(!_touchGuard()) document.getElementById('restore-input').click()">
+          <span class="label">バックアップから復元</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A6455" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+        <div class="settings-divider"></div>
+        <button class="settings-row danger" onclick="if(!_touchGuard()) confirmDeleteAll()">
+          <span class="label">すべてのデータを削除</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A6455" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">このアプリについて</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <span class="label">バージョン</span>
+          <span class="value" id="settings-version">1.0.0</span>
+        </div>
+        <div class="settings-divider"></div>
+        <div class="settings-row">
+          <span class="label">プライバシーについて</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A6455" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ ボトムナビ ══════════════════════ -->
+  <nav class="bottom-nav" id="bottom-nav" aria-label="メインメニュー">
+    <button class="nav-item" id="nav-beans" onclick="if(!_touchGuard()) switchNav('beans')">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>
+      <span class="nav-label">豆</span>
+    </button>
+    <button class="nav-fab" id="nav-add" aria-label="豆を追加" onclick="if(!_touchGuard()) openAddForm()">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <button class="nav-item" id="nav-days" onclick="if(!_touchGuard()) switchNav('days')">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h11a2 2 0 0 1 2 2v15H8a2 2 0 0 1-2-2zM6 18a2 2 0 0 1 2-2h11M10 8h5"/></svg>
+      <span class="nav-label">日々</span>
+    </button>
+  </nav>
+
+  <input type="file" id="photo-input" accept="image/*" capture="environment" hidden>
+  <input type="file" id="restore-input" accept="application/json" hidden onchange="if(!_touchGuard()) importBackup(event)">
+
+  <!-- 確認ダイアログ -->
+  <div class="overlay" id="confirm-overlay">
+    <div class="confirm-dialog">
+      <div class="message" id="confirm-message"></div>
+      <div class="actions">
+        <button class="cancel" id="confirm-cancel-btn">キャンセル</button>
+        <button class="ok" id="confirm-ok-btn">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 豆選択シート(日々タブの入力欄用) -->
+  <div class="overlay" id="bean-picker-overlay" onclick="if(event.target===this) closeBeanPicker()">
+    <div class="confirm-dialog" style="max-height:70vh;overflow-y:auto">
+      <div class="message" style="font-weight:700">豆を選ぶ</div>
+      <div id="bean-picker-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+<script src="js/app.js?v=1"></script>
+</body>
+</html>
