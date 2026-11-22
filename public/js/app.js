@@ -550,14 +550,60 @@ async function submitQuickEntry(context) {
   showToast('記録しました');
 }
 
+let _actionEntryId = null;
+
 function openEntryActions(entryId) {
+  _actionEntryId = entryId;
+  document.getElementById('entry-actions-overlay').classList.add('visible');
+}
+function closeEntryActions() {
+  document.getElementById('entry-actions-overlay').classList.remove('visible');
+}
+
+function startEditEntry() {
+  const entryId = _actionEntryId;
+  closeEntryActions();
   const entry = entriesCache.find((e) => e.id === entryId);
   if (!entry) return;
+
+  const overlay = document.getElementById('entry-edit-overlay');
+  const input = document.getElementById('entry-edit-text');
+  const saveBtn = document.getElementById('entry-edit-save-btn');
+  const cancelBtn = document.getElementById('entry-edit-cancel-btn');
+  input.value = entry.text || '';
+  overlay.classList.add('visible');
+
+  function cleanup() {
+    overlay.classList.remove('visible');
+    saveBtn.removeEventListener('click', onSave);
+    cancelBtn.removeEventListener('click', onCancel);
+  }
+  async function onSave() {
+    const newText = input.value.trim();
+    if (!newText && !entry.photo) {
+      showToast('ひとこと、または写真が必要です');
+      return;
+    }
+    entry.text = newText;
+    await dbPut('entries', entry);
+    cleanup();
+    if (document.getElementById('screen-bean-detail').classList.contains('visible')) renderDetail(_currentBeanId);
+    renderDaysList();
+    showToast('更新しました');
+  }
+  function onCancel() { cleanup(); }
+  saveBtn.addEventListener('click', onSave);
+  cancelBtn.addEventListener('click', onCancel);
+}
+
+function confirmDeleteEntryFromSheet() {
+  const entryId = _actionEntryId;
+  closeEntryActions();
   showConfirm('このひとことを削除しますか?', { danger: true, okLabel: '削除' }).then((ok) => {
-    if (!ok) return;
-    deleteEntry(entryId);
+    if (ok) deleteEntry(entryId);
   });
 }
+
 async function deleteEntry(entryId) {
   await dbDelete('entries', entryId);
   entriesCache = entriesCache.filter((e) => e.id !== entryId);

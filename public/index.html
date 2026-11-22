@@ -292,6 +292,29 @@
     </div>
   </div>
 
+  <!-- ひとことの操作シート(長押しで表示) -->
+  <div class="overlay" id="entry-actions-overlay" onclick="if(event.target===this) closeEntryActions()">
+    <div class="confirm-dialog" style="padding:8px">
+      <button class="settings-row" onclick="startEditEntry()"><span class="label">編集</span></button>
+      <div class="settings-divider"></div>
+      <button class="settings-row danger" onclick="confirmDeleteEntryFromSheet()"><span class="label">削除</span></button>
+      <div class="settings-divider"></div>
+      <button class="settings-row" onclick="closeEntryActions()"><span class="label" style="color:var(--text-muted)">キャンセル</span></button>
+    </div>
+  </div>
+
+  <!-- ひとこと編集 -->
+  <div class="overlay" id="entry-edit-overlay">
+    <div class="confirm-dialog">
+      <div class="message" style="font-weight:700">ひとことを編集</div>
+      <input type="text" id="entry-edit-text" style="background:var(--cream);border-radius:var(--radius-btn);border:0;padding:0 14px;height:46px;width:100%;color:var(--espresso)">
+      <div class="actions">
+        <button class="cancel" id="entry-edit-cancel-btn">キャンセル</button>
+        <button class="ok" id="entry-edit-save-btn">保存</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 </div>
 <script src="js/app.js?v=1"></script>
