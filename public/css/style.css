@@ -111,7 +111,8 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 }
 .search-bar input {
   border: 0; outline: none; background: none; flex: 1;
-  font-size: 14px; color: var(--espresso);
+  /* 16px未満だとiOS Safariがフォーカス時に自動ズームする(CLAUDE.md規約) */
+  font-size: 16px; color: var(--espresso);
 }
 .search-bar input::placeholder { color: var(--text-muted); }
 
@@ -152,7 +153,8 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 }
 .quick-input-bar input[type="text"] {
   flex: 1; border: 0; outline: none; background: none;
-  font-size: 15px; color: var(--espresso); padding-left: 10px; min-width: 0;
+  /* 16px未満だとiOS Safariがフォーカス時に自動ズームする(CLAUDE.md規約) */
+  font-size: 16px; color: var(--espresso); padding-left: 10px; min-width: 0;
 }
 .quick-input-bar input::placeholder { color: var(--text-muted); }
 .round-btn {
@@ -265,7 +267,8 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 .field label { font-size: 12px; color: var(--text-muted); }
 .field input[type="text"], .field input[type="date"] {
   background: var(--warm-white); border-radius: var(--radius-btn); border: 0;
-  padding: 0 14px; height: 46px; font-size: 15px; color: var(--espresso); width: 100%;
+  /* 16px未満だとiOS Safariがフォーカス時に自動ズームする(CLAUDE.md規約) */
+  padding: 0 14px; height: 46px; font-size: 16px; color: var(--espresso); width: 100%;
 }
 .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 

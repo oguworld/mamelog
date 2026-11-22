@@ -241,40 +241,87 @@ function showConfirm(message, { danger = false, okLabel = 'OK' } = {}) {
 }
 
 /* ══════════════════════ 画像縮小(Canvas、長辺900px・JPEG0.8) ══════════════════════ */
+function resizeImageElement(img) {
+  const maxEdge = 900;
+  let { width, height } = img;
+  if (width > maxEdge || height > maxEdge) {
+    if (width >= height) {
+      height = Math.round((height * maxEdge) / width);
+      width = maxEdge;
+    } else {
+      width = Math.round((width * maxEdge) / height);
+      height = maxEdge;
+    }
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+  return canvas.toDataURL('image/jpeg', 0.8);
+}
+
+function resizeDataUrl(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onerror = () => reject(new Error('image load failed'));
+    img.onload = () => resolve(resizeImageElement(img));
+    img.src = dataUrl;
+  });
+}
+
 function resizeImageFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(reader.error);
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = () => reject(new Error('image load failed'));
-      img.onload = () => {
-        const maxEdge = 900;
-        let { width, height } = img;
-        if (width > maxEdge || height > maxEdge) {
-          if (width >= height) {
-            height = Math.round((height * maxEdge) / width);
-            width = maxEdge;
-          } else {
-            width = Math.round((width * maxEdge) / height);
-            height = maxEdge;
-          }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.8));
-      };
-      img.src = reader.result;
-    };
+    reader.onload = () => resizeDataUrl(reader.result).then(resolve, reject);
     reader.readAsDataURL(file);
   });
 }
 
-function pickPhoto(target) {
+function applyPickedPhoto(target, dataUrl) {
+  if (target === 'add') {
+    _pendingPhotoDataUrl = dataUrl;
+    _identifyApplied = false;
+    const preview = document.getElementById('add-photo-preview');
+    preview.style.backgroundImage = `url(${dataUrl})`;
+    preview.querySelector('svg').style.display = 'none';
+    preview.querySelector('.cam-fab').style.display = 'grid';
+    if (settings.autoFillEnabled) {
+      document.getElementById('identify-trigger').style.display = 'block';
+    }
+  } else if (target === 'days') {
+    _daysQuickPhoto = dataUrl;
+    showToast('写真を添付しました');
+  } else if (target === 'detail') {
+    _detailQuickPhoto = dataUrl;
+    showToast('写真を添付しました');
+  }
+}
+
+// ネイティブアプリ(Capacitor)では@capacitor/camera(ios-app/package.jsonで導入済み)を使う。
+// バンドラーを使わない構成のため、ESモジュールimportではなくグローバルのCapacitor.Pluginsから
+// 取得する(姉妹アプリ共通の規約)。CameraSource.Promptは「カメラで撮る/フォトライブラリから選ぶ」の
+// 2択のみを表示し(Web版のinput要素で出る「ファイルを選択」に相当する項目は出ない)。
+// Web版(Capacitor非搭載)では従来通りinput要素のクリックにフォールバックする。
+async function pickPhoto(target) {
   _photoPickTarget = target;
-  document.getElementById('photo-input').click();
+  const Camera = window.Capacitor?.isNativePlatform?.() && window.Capacitor.Plugins?.Camera;
+  if (!Camera) {
+    document.getElementById('photo-input').click();
+    return;
+  }
+  try {
+    const photo = await Camera.getPhoto({
+      source: 'PROMPT',
+      resultType: 'dataUrl',
+      quality: 90,
+      correctOrientation: true,
+    });
+    const resized = await resizeDataUrl(photo.dataUrl);
+    applyPickedPhoto(target, resized);
+  } catch (_) {
+    // ユーザーがキャンセルした場合もここに来る。何もしない。
+  }
 }
 
 document.getElementById('photo-input').addEventListener('change', async (e) => {
@@ -288,23 +335,7 @@ document.getElementById('photo-input').addEventListener('change', async (e) => {
     showToast('写真の読み込みに失敗しました');
     return;
   }
-  if (_photoPickTarget === 'add') {
-    _pendingPhotoDataUrl = dataUrl;
-    _identifyApplied = false;
-    const preview = document.getElementById('add-photo-preview');
-    preview.style.backgroundImage = `url(${dataUrl})`;
-    preview.querySelector('svg').style.display = 'none';
-    preview.querySelector('.cam-fab').style.display = 'grid';
-    if (settings.autoFillEnabled) {
-      document.getElementById('identify-trigger').style.display = 'block';
-    }
-  } else if (_photoPickTarget === 'days') {
-    _daysQuickPhoto = dataUrl;
-    showToast('写真を添付しました');
-  } else if (_photoPickTarget === 'detail') {
-    _detailQuickPhoto = dataUrl;
-    showToast('写真を添付しました');
-  }
+  applyPickedPhoto(_photoPickTarget, dataUrl);
 });
 
 /* ══════════════════════ 豆一覧 ══════════════════════ */
