@@ -67,6 +67,16 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
   margin: 0 auto;
   min-height: 100vh;
   overflow-x: hidden;
+  /* 長押し(ひとことの編集/削除シート等)がiOSのテキスト選択・コールアウトメニューと
+     競合しないよう、アプリ全体では無効化する。入力欄だけは下で選択可に戻す。 */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+#app input, #app textarea {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
 }
 
 .screen {
