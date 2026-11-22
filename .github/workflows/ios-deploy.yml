@@ -1,0 +1,122 @@
+name: iOS Deploy to App Store
+
+on:
+  push:
+    branches:
+      - release
+
+jobs:
+  deploy:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Capacitor dependencies
+        run: |
+          cd ios-app
+          npm install
+
+      - name: Add iOS platform
+        run: |
+          cd ios-app
+          npx cap add ios
+
+      - name: Generate app icons and splash screen
+        run: |
+          cd ios-app
+          npx capacitor-assets generate --ios
+
+      - name: Sync Capacitor
+        run: |
+          cd ios-app
+          npx cap sync ios
+
+      # App Store審査対応(ITMS-90068): sg-weekend-app/sg-bus-naviと同じ汎用スクリプトを流用
+      - name: (App Store審査対応) Ensure minimum iOS version is 15.0 (ITMS-90068)
+        run: |
+          cd ios-app
+          python3 ../scripts/ensure-min-ios-version.py ios
+
+      - name: Re-run pod install after Podfile patch
+        run: |
+          cd ios-app/ios/App
+          pod install
+
+      - name: Set export compliance in Info.plist
+        run: |
+          cd ios-app
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/App/App/Info.plist || \
+          /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" ios/App/App/Info.plist
+
+      - name: Set status bar style in Info.plist
+        run: |
+          cd ios-app
+          /usr/libexec/PlistBuddy -c "Add :UIViewControllerBasedStatusBarAppearance bool false" ios/App/App/Info.plist || \
+          /usr/libexec/PlistBuddy -c "Set :UIViewControllerBasedStatusBarAppearance false" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :UIStatusBarStyle string UIStatusBarStyleDarkContent" ios/App/App/Info.plist || \
+          /usr/libexec/PlistBuddy -c "Set :UIStatusBarStyle UIStatusBarStyleDarkContent" ios/App/App/Info.plist
+
+      # Bean Diaryは写真から豆情報を自動入力するため、カメラ・フォトライブラリの利用目的を
+      # Info.plistに登録する必要がある(未設定だと実機でシステムの許可ダイアログ自体が出ず、
+      # 撮影/選択しようとした瞬間にクラッシュする。App Store審査でも必須)。
+      # sg-weekend-appは写真関連機能が無く、sg-bus-naviは位置情報のみだったため、
+      # この設定はBean Diary固有。
+      - name: Set camera/photo library usage description in Info.plist
+        run: |
+          cd ios-app
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string '豆の写真を撮影するためにカメラを使用します。'" ios/App/App/Info.plist || \
+          /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription '豆の写真を撮影するためにカメラを使用します。'" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string '豆の写真を選択するためにフォトライブラリを使用します。'" ios/App/App/Info.plist || \
+          /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryUsageDescription '豆の写真を選択するためにフォトライブラリを使用します。'" ios/App/App/Info.plist
+
+      - name: Select Xcode 26
+        run: |
+          XCODE=$(ls /Applications/ | grep -E '^Xcode_26' | sort -r | head -1)
+          if [ -n "$XCODE" ]; then
+            sudo xcode-select -s "/Applications/${XCODE}"
+            echo "Selected: $XCODE"
+          else
+            echo "Xcode 26 not found, using default: $(xcode-select -p)"
+          fi
+          xcodebuild -version
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: ios-app
+
+      - name: Extract release notes from package.json
+        id: notes
+        run: |
+          NOTES=$(node -p "require('./ios-app/package.json').releaseNotes || 'Bug fixes and performance improvements.'")
+          VER=$(node -p "require('./ios-app/package.json').version")
+          {
+            echo "release_notes<<RELEASE_NOTES_EOF"
+            echo "$NOTES"
+            echo "RELEASE_NOTES_EOF"
+          } >> $GITHUB_OUTPUT
+          echo "app_version=${VER}" >> $GITHUB_OUTPUT
+
+      - name: Deploy to App Store
+        run: |
+          cd ios-app
+          bundle exec fastlane deploy
+        env:
+          ASC_KEY_ID:               ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID:            ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY:          ${{ secrets.ASC_PRIVATE_KEY }}
+          DIST_CERT_BASE64:         ${{ secrets.DIST_CERT_BASE64 }}
+          DIST_CERT_PASSWORD:       ${{ secrets.DIST_CERT_PASSWORD }}
+          PROVISION_PROFILE_BASE64: ${{ secrets.PROVISION_PROFILE_BASE64 }}
+          APPLE_TEAM_ID:            ${{ secrets.APPLE_TEAM_ID }}
+          BUILD_NUMBER:             ${{ github.run_number }}
+          RELEASE_NOTES:            ${{ steps.notes.outputs.release_notes }}
+          APP_VERSION:              ${{ steps.notes.outputs.app_version }}
