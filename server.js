@@ -65,60 +65,79 @@ const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // SPEC §4: 画像サイズ上限 約8
 const ROAST_VALUES = ['浅煎り', '中浅煎り', '中煎り', '中深煎り', '深煎り'];
 const PROCESS_VALUES = ['ウォッシュド', 'ナチュラル', 'ハニー', 'その他'];
 
+const IDENTIFY_BEAN_TOOL = {
+  name: 'identify_bean',
+  description: '写真と(必要な場合の)Web検索結果から、コーヒー豆の基本情報を1件報告する。調査が終わったら必ず最後にこのツールを呼ぶこと。',
+  input_schema: {
+    type: 'object',
+    required: ['confidence'],
+    properties: {
+      name: { type: 'string', description: '豆の名前' },
+      shop: { type: 'string', description: '購入先・店名' },
+      origin: { type: 'string', description: '産地' },
+      roast: { type: 'string', enum: ROAST_VALUES },
+      process: { type: 'string', enum: PROCESS_VALUES },
+      taste: {
+        type: 'object',
+        description: '読み取れた場合のみ、各1〜5の整数で推定する',
+        properties: {
+          酸味: { type: 'integer', minimum: 1, maximum: 5 },
+          苦味: { type: 'integer', minimum: 1, maximum: 5 },
+          甘味: { type: 'integer', minimum: 1, maximum: 5 },
+          コク: { type: 'integer', minimum: 1, maximum: 5 },
+          香り: { type: 'integer', minimum: 1, maximum: 5 },
+        },
+      },
+      flavor_notes: { type: 'string', description: '公式の風味説明(分かる場合のみ)' },
+      source_url: { type: 'string', description: '参照した公式ページのURL(分かる場合のみ)' },
+      confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
+    },
+  },
+};
+
+// サーバー側ツール(web_search)はAPI内部で最大10回まで自動反復し、それを超えると
+// stop_reason:'pause_turn'で一旦返ってくる。SPEC §4通り、その場合は会話をそのまま
+// 再送して継続する(最大5回まで)。tool_choiceは強制しない(強制するとweb_searchが
+// 使えなくなるため、システムプロンプト側で「最後に必ずidentify_beanを呼ぶ」よう指示する)。
 async function identifyBean(base64Data, mediaType) {
   if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
   const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
-  const res = await client.messages.create({
+  const messages = [
+    {
+      role: 'user',
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } },
+        { type: 'text', text: 'このコーヒー豆のパッケージ写真から情報を推定してください。' },
+      ],
+    },
+  ];
+
+  const requestParams = {
     model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
+    max_tokens: 1536,
     system: `あなたはコーヒー豆の記録アプリ「Bean Diary」の自動入力アシスタントです。
-写真(パッケージ・ラベル)から読み取れる情報のみを根拠に、identify_beanツールで豆の基本情報を1件推定してください。
-推測で埋めるのではなく、写真から読み取れない項目は省略してください(フォーム側は空欄のままになります)。
-confidenceは、写真から豆・店名がはっきり特定できた場合は"high"、一部の情報のみ読み取れた場合は"medium"、
+写真(パッケージ・ラベル)から豆の名前・店名・産地等を読み取り、必要なら web_search で公式サイト・販売ページを
+数回(2〜3回程度で十分、多くても)調べて、風味説明(flavor_notes)や参照URL(source_url)等の補足情報を集めてください。
+調査が終わったら、推測で埋めるのではなく確認できた情報だけを使い、必ず identify_bean ツールを1回呼んで結果を報告してください
+(写真やWeb検索だけで終わらせず、最後に必ずこのツールを呼ぶこと)。読み取れない・確認できない項目は省略してください
+(フォーム側は空欄のままになります)。confidenceは、豆・店名がはっきり特定できた場合は"high"、一部の情報のみ読み取れた場合は"medium"、
 ラベルがほとんど読めない・推測に近い場合は"low"としてください。`,
-    messages: [
-      {
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } },
-          { type: 'text', text: 'このコーヒー豆のパッケージ写真から情報を推定してください。' },
-        ],
-      },
-    ],
+    messages,
     tools: [
-      {
-        name: 'identify_bean',
-        description: '写真に写っているコーヒー豆のパッケージ・ラベルから基本情報を推定する',
-        input_schema: {
-          type: 'object',
-          required: ['confidence'],
-          properties: {
-            name: { type: 'string', description: '豆の名前' },
-            shop: { type: 'string', description: '購入先・店名' },
-            origin: { type: 'string', description: '産地' },
-            roast: { type: 'string', enum: ROAST_VALUES },
-            process: { type: 'string', enum: PROCESS_VALUES },
-            taste: {
-              type: 'object',
-              description: '読み取れた場合のみ、各1〜5の整数で推定する',
-              properties: {
-                酸味: { type: 'integer', minimum: 1, maximum: 5 },
-                苦味: { type: 'integer', minimum: 1, maximum: 5 },
-                甘味: { type: 'integer', minimum: 1, maximum: 5 },
-                コク: { type: 'integer', minimum: 1, maximum: 5 },
-                香り: { type: 'integer', minimum: 1, maximum: 5 },
-              },
-            },
-            flavor_notes: { type: 'string', description: '公式の風味説明(分かる場合のみ)' },
-            source_url: { type: 'string', description: '参照した公式ページのURL(分かる場合のみ)' },
-            confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
-          },
-        },
-      },
+      { type: 'web_search_20260209', name: 'web_search', max_uses: 3 },
+      IDENTIFY_BEAN_TOOL,
     ],
-    tool_choice: { type: 'tool', name: 'identify_bean' },
-  });
+  };
+
+  let res = await client.messages.create(requestParams);
+
+  for (let resumeCount = 0; res.stop_reason === 'pause_turn' && resumeCount < 5; resumeCount++) {
+    messages.push({ role: 'assistant', content: res.content });
+    res = await client.messages.create({ ...requestParams, messages });
+  }
+
+  if (res.stop_reason === 'refusal') throw new Error('request refused');
 
   const toolUse = res.content?.find((b) => b.type === 'tool_use' && b.name === 'identify_bean');
   if (!toolUse) throw new Error('identify_bean tool not called');

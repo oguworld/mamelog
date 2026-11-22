@@ -33,7 +33,7 @@
 ## AI自動入力(写真から豆情報を推定)
 - エンドポイント: `POST /api/identify`、リクエスト`{ image: "data:image/jpeg;base64,..." }`(上限約8MB、`express.json({limit:'12mb'})`で個別対応)
 - モデル: **`claude-sonnet-4-6`**(SG在住Naviの既存画像解析=`generateEventDraft()`と同じ実績ある構成。SPEC.md記載の`claude-opus-5-5`はプロジェクト内に実例が無い未来日付的な仮称のため採用しない)
-- Web検索ツールは**初版では使わない**(画像認識のみで`name/shop/origin/roast/process/taste/flavor_notes/source_url/confidence`を推定。`flavor_notes`/`source_url`は確度が低くなる想定でconfidenceに反映)。将来追加する場合は実装時にAnthropic公式ドキュメントで正式なツール名を確認すること
+- Web検索ツール`web_search_20260209`(name: `web_search`、`claude-sonnet-4-6`が対応モデルに含まれることを確認済み)を併用し、`flavor_notes`・`source_url`等の補足情報を調べる(`max_uses: 3`で回数を制限)。`tool_choice`は強制しない(強制すると`web_search`が使えなくなるため)。システムプロンプトで「調査が終わったら必ず`identify_bean`を呼ぶ」よう指示し、応答から`identify_bean`のtool_useブロックを探す。サーバー側ツールの内部反復が10回を超えると`stop_reason:'pause_turn'`で一旦返るため、会話をそのまま再送して継続する(SPEC §4通り最大5回)。`refusal`はエラー扱い
 - 構造化出力は`tools`+`tool_choice`(SG在住Naviの`create_event`パターンと同じ)で取得し、プロトタイプのような正規表現抜き出しは使わない
 - レスポンスは空欄のみフォームに反映(ユーザーが既に入力した項目は上書きしない)。保存前に必ずユーザーが確認する
 - APIキー(`ANTHROPIC_API_KEY`)はサーバー環境変数のみ。クライアントに置かない
@@ -67,7 +67,7 @@ CSS変数の二層構造(ベース変数→意味的エイリアス、SGBusNavi�
 日本語UI固定。SG在住Naviの`data-i18n`+`STRINGS.ja`機構は導入しない(SGBusNaviが英語固定でi18n機構を導入していない前例と同じ判断。過剰な抽象化を避ける)。文字列は直接HTML/JSに日本語で書く。
 
 ## スコープ外(初版で作らないもの)
-傾向(統計)画面・味のレーダーチャート・並び替え/フィルタ拡張・JSONエクスポート単体機能・SG店舗情報との連携・日々のメモへの味タグ付け・「今日の一杯」リマインド・クラウド同期・アカウント機能・通知/リマインド設定・Web検索ツールを使った自動入力・本番App Store審査提出(今回のゴールはTestFlightまで)。
+傾向(統計)画面・味のレーダーチャート・並び替え/フィルタ拡張・JSONエクスポート単体機能・SG店舗情報との連携・日々のメモへの味タグ付け・「今日の一杯」リマインド・クラウド同期・アカウント機能・通知/リマインド設定・本番App Store審査提出(今回のゴールはTestFlightまで)。
 
 ## 開発フロー
 このリポジトリも`sg-weekend-app`と同じ規約に従う: 新機能・複数ファイルに跨る修正はplanner→orchestrator(builder→checker→closer)の順。設計の経緯は`.claude/plan.md`に末尾追記(「設計書N」の連番、このリポジトリ専用に1から開始)。
