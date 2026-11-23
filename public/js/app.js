@@ -398,8 +398,16 @@ function applyPickedPhoto(target, dataUrl) {
     }
   } else if (target === 'days') {
     _daysQuickPhoto = dataUrl;
+    renderQuickEntryPhotoPreview();
     showToast('写真を添付しました');
   }
+}
+
+function renderQuickEntryPhotoPreview() {
+  const preview = document.getElementById('quick-entry-photo-preview');
+  preview.style.backgroundImage = _daysQuickPhoto ? `url(${_daysQuickPhoto})` : '';
+  preview.querySelector('svg').style.display = _daysQuickPhoto ? 'none' : 'block';
+  preview.querySelector('.cam-fab').style.display = _daysQuickPhoto ? 'grid' : 'none';
 }
 
 /* ══════════════════════ 音声入力(Web Speech API) ══════════════════════
@@ -755,6 +763,7 @@ function openQuickEntrySheetFromFab() {
   _daysQuickPhoto = null;
   _quickEntryRating = 0;
   renderQuickEntryRating();
+  renderQuickEntryPhotoPreview();
   updateQuickEntryBeanLabel();
   document.getElementById('quick-entry-overlay').classList.add('visible');
   document.getElementById('quick-entry-fab-layer').style.display = 'none';
@@ -785,6 +794,7 @@ async function submitQuickEntry() {
   document.getElementById('quick-entry-brew').value = '';
   _daysQuickPhoto = null;
   _quickEntryRating = 0;
+  renderQuickEntryPhotoPreview();
   settings.lastUsedBeanId = beanId;
   saveSettings();
 
