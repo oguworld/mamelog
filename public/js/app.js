@@ -363,6 +363,48 @@ function starsHtml(rating, size = 15) {
   return html;
 }
 
+let _expandedBeanIds = new Set();
+
+function toggleBeanCardExpand(beanId, event) {
+  event.stopPropagation();
+  if (_expandedBeanIds.has(beanId)) _expandedBeanIds.delete(beanId);
+  else _expandedBeanIds.add(beanId);
+  renderBeansList();
+}
+
+function beanCardHtml(bean) {
+  const meta = [bean.origin, bean.roast, bean.process].filter(Boolean).join(' ・ ');
+  const expanded = _expandedBeanIds.has(bean.id);
+  const tasteHtml = TASTE_KEYS.filter((k) => bean.taste && bean.taste[k] > 0)
+    .map((k) => `<span class="taste-chip">${k} ${bean.taste[k]}</span>`).join('');
+  const expandRowParts = [];
+  if (bean.purchaseDate) expandRowParts.push(`購入 ${bean.purchaseDate.slice(5).replace('-', '/')}`);
+  if (bean.brew) expandRowParts.push(bean.brew);
+
+  return `
+    <div class="bean-card" role="button" onclick="openBeanDetail('${bean.id}')">
+      <div class="bean-thumb" style="${beanThumbStyle(bean)}">${bean.photo ? '' : beanIconSvg(36)}</div>
+      <div class="bean-card-body">
+        <div class="bean-card-top-row">
+          <div class="bean-card-name">${escapeHtml(bean.name)}</div>
+          <button class="bean-card-toggle" aria-label="詳細を開閉" onclick="toggleBeanCardExpand('${bean.id}', event)">
+            <svg class="chevron${expanded ? ' open' : ''}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A6455" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+        </div>
+        <div class="bean-card-meta">${escapeHtml(meta)}</div>
+        <div class="bean-card-shop">${escapeHtml(bean.shop || '')}</div>
+        <div class="star-row">${starsHtml(bean.rating)}</div>
+        ${expanded ? `
+        <div class="bean-card-expand">
+          ${tasteHtml ? `<div class="taste-chip-row">${tasteHtml}</div>` : ''}
+          ${expandRowParts.length ? `<div class="bean-card-expand-row">${escapeHtml(expandRowParts.join(' ・ '))}</div>` : ''}
+          ${bean.flavorNotes ? `<div class="bean-card-expand-notes">${escapeHtml(bean.flavorNotes)}</div>` : ''}
+          ${(!tasteHtml && !expandRowParts.length && !bean.flavorNotes) ? '<div class="bean-card-expand-row" style="color:var(--text-muted)">詳細情報はまだありません</div>' : ''}
+        </div>` : ''}
+      </div>
+    </div>`;
+}
+
 function renderBeansList() {
   const search = (document.getElementById('bean-search').value || '').trim().toLowerCase();
   let list = beansCache.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -376,19 +418,7 @@ function renderBeansList() {
   document.getElementById('beans-empty').style.display = beansCache.length === 0 ? 'block' : 'none';
 
   const container = document.getElementById('beans-list');
-  container.innerHTML = list.map((bean) => {
-    const meta = [bean.origin, bean.roast, bean.process].filter(Boolean).join(' ・ ');
-    return `
-      <button class="bean-card" onclick="openBeanDetail('${bean.id}')">
-        <div class="bean-thumb" style="${beanThumbStyle(bean)}">${bean.photo ? '' : beanIconSvg(36)}</div>
-        <div class="bean-card-body">
-          <div class="bean-card-name">${escapeHtml(bean.name)}</div>
-          <div class="bean-card-meta">${escapeHtml(meta)}</div>
-          <div class="bean-card-shop">${escapeHtml(bean.shop || '')}</div>
-          <div class="star-row">${starsHtml(bean.rating)}</div>
-        </div>
-      </button>`;
-  }).join('');
+  container.innerHTML = list.map(beanCardHtml).join('');
 }
 
 function escapeHtml(s) {

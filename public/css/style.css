@@ -145,10 +145,24 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
   width: 88px; height: 88px; border-radius: 14px; flex: none;
   display: grid; place-items: center; background-size: cover; background-position: center;
 }
-.bean-card-body { display: flex; flex-direction: column; justify-content: center; gap: 4px; min-width: 0; }
-.bean-card-name { font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bean-card-body { display: flex; flex-direction: column; justify-content: center; gap: 4px; min-width: 0; flex: 1; }
+.bean-card-top-row { display: flex; align-items: center; gap: 6px; }
+.bean-card-name { flex: 1; min-width: 0; font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bean-card-meta, .bean-card-shop { font-size: 12.5px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .star-row { display: flex; gap: 2px; margin-top: 2px; }
+
+.bean-card-toggle {
+  flex: none; width: 32px; height: 32px; border-radius: 50%; border: 0;
+  background: var(--cream); display: grid; place-items: center; cursor: pointer; padding: 0;
+}
+.bean-card-toggle .chevron { transition: transform 0.15s ease; }
+.bean-card-toggle .chevron.open { transform: rotate(180deg); }
+.bean-card-expand {
+  margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--sand);
+  display: flex; flex-direction: column; gap: 8px; white-space: normal;
+}
+.bean-card-expand-row { font-size: 12.5px; color: var(--text-muted); }
+.bean-card-expand-notes { font-size: 12.5px; color: var(--text-muted); line-height: 1.6; }
 .star-row svg { color: var(--caramel); }
 
 .empty-state { text-align: center; padding: 60px 24px; color: var(--text-muted); }
