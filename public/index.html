@@ -274,15 +274,10 @@
           <span class="label" id="quick-entry-bean-label">豆を選ぶ</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7A6455" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </button>
-        <button class="photo-preview quick-entry-photo" id="quick-entry-photo-preview" aria-label="写真を添える" onclick="if(!_touchGuard()) pickPhoto('days')">
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#7A6455" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-          <span class="cam-fab" aria-hidden="true" style="display:none">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-          </span>
-        </button>
+        <div class="photo-row-multi" id="quick-entry-photos"></div>
         <div class="rating-input" id="quick-entry-rating"></div>
         <input type="text" id="quick-entry-brew" class="entry-brew-input" placeholder="淹れ方(任意) 例: ハンドドリップ 92℃">
-        <input type="text" id="quick-entry-text" class="quick-entry-textfield" placeholder="気づいたことをひとこと…">
+        <textarea id="quick-entry-text" class="quick-entry-textfield" rows="1" placeholder="気づいたことをひとこと…" oninput="autoGrowTextarea(this)"></textarea>
         <div class="quick-entry-actions">
           <button class="round-btn ghost" id="quick-entry-voice-btn" aria-label="音声入力" onclick="if(!_touchGuard()) toggleVoiceInput()">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
@@ -339,7 +334,7 @@
       <div class="message" style="font-weight:700">ひとことを編集</div>
       <div class="rating-input" id="entry-edit-rating"></div>
       <input type="text" id="entry-edit-brew" class="entry-brew-input" placeholder="淹れ方(任意)">
-      <input type="text" id="entry-edit-text" style="background:var(--cream);border-radius:var(--radius-btn);border:0;padding:0 14px;height:46px;width:100%;color:var(--espresso)">
+      <textarea id="entry-edit-text" class="quick-entry-textfield" rows="1" oninput="autoGrowTextarea(this)"></textarea>
       <div class="actions">
         <button class="cancel" id="entry-edit-cancel-btn">キャンセル</button>
         <button class="ok" id="entry-edit-save-btn">保存</button>

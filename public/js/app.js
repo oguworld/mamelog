@@ -80,7 +80,7 @@ let _editingBeanId = null;
 let _pendingPhotoDataUrl = null;
 let _identifyApplied = false;
 let _photoPickTarget = null;
-let _daysQuickPhoto = null;
+let _daysQuickPhotos = [];
 let _daysSelectedBeanId = null;
 
 const ROAST_VALUES = ['浅煎り', '中浅煎り', '中煎り', '中深煎り', '深煎り'];
@@ -417,17 +417,36 @@ function applyPickedPhoto(target, dataUrl) {
       document.getElementById('identify-trigger').style.display = 'block';
     }
   } else if (target === 'days') {
-    _daysQuickPhoto = dataUrl;
-    renderQuickEntryPhotoPreview();
+    _daysQuickPhotos.push(dataUrl);
+    renderQuickEntryPhotos();
     showToast('写真を添付しました');
   }
 }
 
-function renderQuickEntryPhotoPreview() {
-  const preview = document.getElementById('quick-entry-photo-preview');
-  preview.style.backgroundImage = _daysQuickPhoto ? `url(${_daysQuickPhoto})` : '';
-  preview.querySelector('svg').style.display = _daysQuickPhoto ? 'none' : 'block';
-  preview.querySelector('.cam-fab').style.display = _daysQuickPhoto ? 'grid' : 'none';
+function renderQuickEntryPhotos() {
+  const wrap = document.getElementById('quick-entry-photos');
+  wrap.innerHTML = _daysQuickPhotos.map((url, i) => `
+    <div class="photo-thumb-multi" style="background-image:url(${url})">
+      <button class="photo-thumb-remove" aria-label="写真を削除" onclick="removeQuickEntryPhoto(${i}, event)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+      </button>
+    </div>
+  `).join('') + `
+    <button class="photo-add-slot" aria-label="写真を追加" onclick="if(!_touchGuard()) pickPhoto('days')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+    </button>`;
+}
+
+function removeQuickEntryPhoto(index, event) {
+  event.stopPropagation();
+  _daysQuickPhotos.splice(index, 1);
+  renderQuickEntryPhotos();
+}
+
+// ひとことの入力欄(今日の一言シート・編集シート共用)は内容に合わせて自然に伸びる
+function autoGrowTextarea(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
 }
 
 /* ══════════════════════ 音声入力(Web Speech API) ══════════════════════
@@ -661,11 +680,19 @@ function formatDayLabel(d) {
   return `${d.getMonth() + 1}/${d.getDate()}(${weekday})`;
 }
 
+// 旧データはentry.photo(単数)のみ持つ場合があるため、表示側で両対応する
+function entryPhotos(entry) {
+  if (entry.photos && entry.photos.length) return entry.photos;
+  if (entry.photo) return [entry.photo];
+  return [];
+}
+
 function beanTimelineHtml(beanId) {
   const entries = entriesCache.filter((e) => e.beanId === beanId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const rows = entries.map((entry, i) => {
     const d = new Date(entry.createdAt);
     const timeLabel = `${formatDayLabel(d)} ${formatTime(d)}`;
+    const photos = entryPhotos(entry);
     return `
       <div class="timeline-row" data-entry-id="${entry.id}">
         <div class="timeline-dot${i === 0 ? ' latest' : ''}"></div>
@@ -675,8 +702,8 @@ function beanTimelineHtml(beanId) {
             ${entry.rating ? `<div class="timeline-rating">${starsHtml(entry.rating, 12)}</div>` : ''}
             <div class="timeline-entry-text">${escapeHtml(entry.text || '')}</div>
             ${entry.brew ? `<div class="timeline-brew">${escapeHtml(entry.brew)}</div>` : ''}
+            ${photos.length ? `<div class="timeline-photos">${photos.map((p) => `<div class="timeline-thumb" style="background-image:url(${p})"></div>`).join('')}</div>` : ''}
           </div>
-          ${entry.photo ? `<div class="timeline-thumb" style="background-image:url(${entry.photo})"></div>` : ''}
         </div>
       </div>`;
   }).join('');
@@ -732,6 +759,7 @@ function renderDaysList() {
       ${g.items.map((entry) => {
         const bean = beansCache.find((b) => b.id === entry.beanId);
         const d = new Date(entry.createdAt);
+        const photos = entryPhotos(entry);
         return `
           <button class="entry-card" data-entry-id="${entry.id}">
             <div class="entry-card-body">
@@ -739,8 +767,8 @@ function renderDaysList() {
               ${entry.rating ? `<div class="entry-card-rating">${starsHtml(entry.rating, 12)}</div>` : ''}
               <div class="entry-card-text">${escapeHtml(entry.text || '')}</div>
               ${entry.brew ? `<div class="entry-card-brew">${escapeHtml(entry.brew)}</div>` : ''}
+              ${photos.length ? `<div class="entry-thumbs">${photos.map((p) => `<div class="entry-thumb" style="background-image:url(${p})"></div>`).join('')}</div>` : ''}
             </div>
-            ${entry.photo ? `<div class="entry-thumb" style="background-image:url(${entry.photo})"></div>` : ''}
           </button>`;
       }).join('')}
     </div>
@@ -778,12 +806,14 @@ function renderQuickEntryRating() {
 }
 
 function openQuickEntrySheetFromFab() {
-  document.getElementById('quick-entry-text').value = '';
+  const textInput = document.getElementById('quick-entry-text');
+  textInput.value = '';
+  textInput.style.height = 'auto';
   document.getElementById('quick-entry-brew').value = '';
-  _daysQuickPhoto = null;
+  _daysQuickPhotos = [];
   _quickEntryRating = 0;
   renderQuickEntryRating();
-  renderQuickEntryPhotoPreview();
+  renderQuickEntryPhotos();
   updateQuickEntryBeanLabel();
   document.getElementById('quick-entry-overlay').classList.add('visible');
   document.getElementById('quick-entry-fab-layer').style.display = 'none';
@@ -799,21 +829,22 @@ async function submitQuickEntry() {
   const beanId = _daysSelectedBeanId;
   const textInput = document.getElementById('quick-entry-text');
   const text = textInput.value.trim();
-  const photo = _daysQuickPhoto;
+  const photos = _daysQuickPhotos;
   const brew = document.getElementById('quick-entry-brew').value.trim();
 
   if (!beanId) { showToast('先に豆を登録・選択してください'); return; }
-  if (!text && !photo) { showToast('ひとこと、または写真を入れてください'); return; }
+  if (!text && !photos.length) { showToast('ひとこと、または写真を入れてください'); return; }
 
-  const entry = { id: uuid(), beanId, text, photo: photo || null, rating: _quickEntryRating || 0, brew, createdAt: new Date().toISOString() };
+  const entry = { id: uuid(), beanId, text, photos: [...photos], rating: _quickEntryRating || 0, brew, createdAt: new Date().toISOString() };
   await dbPut('entries', entry);
   entriesCache.push(entry);
 
   textInput.value = '';
+  textInput.style.height = 'auto';
   document.getElementById('quick-entry-brew').value = '';
-  _daysQuickPhoto = null;
+  _daysQuickPhotos = [];
   _quickEntryRating = 0;
-  renderQuickEntryPhotoPreview();
+  renderQuickEntryPhotos();
   settings.lastUsedBeanId = beanId;
   saveSettings();
 
@@ -845,6 +876,7 @@ function startEditEntry() {
   const saveBtn = document.getElementById('entry-edit-save-btn');
   const cancelBtn = document.getElementById('entry-edit-cancel-btn');
   input.value = entry.text || '';
+  autoGrowTextarea(input);
   brewInput.value = entry.brew || '';
   let editRating = entry.rating || 0;
   function renderEditRating() {
@@ -860,7 +892,7 @@ function startEditEntry() {
   }
   async function onSave() {
     const newText = input.value.trim();
-    if (!newText && !entry.photo) {
+    if (!newText && !entryPhotos(entry).length) {
       showToast('ひとこと、または写真が必要です');
       return;
     }
