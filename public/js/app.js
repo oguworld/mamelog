@@ -81,8 +81,6 @@ let _pendingPhotoDataUrl = null;
 let _identifyApplied = false;
 let _photoPickTarget = null;
 let _daysQuickPhoto = null;
-let _beanQuickPhoto = null;
-let _quickEntryBeanId = null;
 let _daysSelectedBeanId = null;
 
 const ROAST_VALUES = ['浅煎り', '中浅煎り', '中煎り', '中深煎り', '深煎り'];
@@ -401,9 +399,6 @@ function applyPickedPhoto(target, dataUrl) {
   } else if (target === 'days') {
     _daysQuickPhoto = dataUrl;
     showToast('写真を添付しました');
-  } else if (target === 'bean') {
-    _beanQuickPhoto = dataUrl;
-    showToast('写真を添付しました');
   }
 }
 
@@ -657,8 +652,7 @@ function beanTimelineHtml(beanId) {
     </div>
     <div class="timeline">
       ${rows || '<div class="bean-card-expand-row" style="color:var(--text-muted)">まだ記録がありません</div>'}
-    </div>
-    <button class="bean-add-entry-btn" onclick="openQuickEntryForBean('${beanId}', event)">＋ ひとことを追加</button>`;
+    </div>`;
 }
 
 /* ══════════════════════ 日々タブ ══════════════════════ */
@@ -739,29 +733,11 @@ function selectDaysBean(beanId) {
   closeBeanPicker();
 }
 
-/* ══════════════════════ 「今日の一言」入力シート(FAB) ══════════════════════ */
-let _quickEntryContext = 'days';
-
+/* ══════════════════════ 「今日の一言」入力シート(FAB、日々タブのみ) ══════════════════════ */
 function openQuickEntrySheetFromFab() {
-  openQuickEntrySheet('days');
-}
-
-function openQuickEntryForBean(beanId, event) {
-  if (event) event.stopPropagation();
-  _quickEntryBeanId = beanId;
-  openQuickEntrySheet('bean');
-}
-
-function openQuickEntrySheet(context) {
-  _quickEntryContext = context;
   document.getElementById('quick-entry-text').value = '';
-  document.getElementById('quick-entry-bean-select').style.display = context === 'days' ? 'inline-flex' : 'none';
-  if (context === 'days') {
-    _daysQuickPhoto = null;
-    updateQuickEntryBeanLabel();
-  } else {
-    _beanQuickPhoto = null;
-  }
+  _daysQuickPhoto = null;
+  updateQuickEntryBeanLabel();
   document.getElementById('quick-entry-overlay').classList.add('visible');
   document.getElementById('quick-entry-fab-layer').style.display = 'none';
 }
@@ -773,11 +749,11 @@ function closeQuickEntrySheet() {
 }
 
 /* ══════════════════════ ひとこと(Entry)の追加・編集・削除 ══════════════════════ */
-async function submitQuickEntry(context) {
-  const beanId = context === 'days' ? _daysSelectedBeanId : _quickEntryBeanId;
+async function submitQuickEntry() {
+  const beanId = _daysSelectedBeanId;
   const textInput = document.getElementById('quick-entry-text');
   const text = textInput.value.trim();
-  const photo = context === 'days' ? _daysQuickPhoto : _beanQuickPhoto;
+  const photo = _daysQuickPhoto;
 
   if (!beanId) { showToast('先に豆を登録・選択してください'); return; }
   if (!text && !photo) { showToast('ひとこと、または写真を入れてください'); return; }
@@ -787,12 +763,12 @@ async function submitQuickEntry(context) {
   entriesCache.push(entry);
 
   textInput.value = '';
-  if (context === 'days') _daysQuickPhoto = null; else _beanQuickPhoto = null;
+  _daysQuickPhoto = null;
   settings.lastUsedBeanId = beanId;
   saveSettings();
 
   closeQuickEntrySheet();
-  if (context === 'days') renderDaysList(); else renderBeansList();
+  renderDaysList();
   showToast('記録しました');
 }
 
