@@ -146,6 +146,7 @@ const DEFAULT_SETTINGS = {
   theme: 'auto',
   startupScreen: 'beans',
   lastUsedBeanId: null,
+  preferenceAnalysis: null,
 };
 let settings = { ...DEFAULT_SETTINGS };
 
@@ -198,7 +199,7 @@ function renderSettingsScreen() {
 }
 
 /* ══════════════════════ 画面遷移 ══════════════════════ */
-const ALL_SCREENS = ['beans', 'days', 'wiki', 'wiki-category', 'add', 'settings'];
+const ALL_SCREENS = ['beans', 'days', 'wiki', 'wiki-category', 'preference', 'add', 'settings'];
 
 // メインFABはどの主要タブ(豆/日々/豆知識)からでも共通。タップすると「豆を追加」
 // 「ひとことを追加」を選べる小さなメニューがFABの真上に開く。
@@ -252,10 +253,11 @@ function updateNavActiveState(highlight) {
   document.getElementById('nav-beans').classList.toggle('active', highlight === 'beans');
   document.getElementById('nav-days').classList.toggle('active', highlight === 'days');
   document.getElementById('nav-wiki').classList.toggle('active', highlight === 'wiki');
+  document.getElementById('nav-preference').classList.toggle('active', highlight === 'preference');
 }
 
 function switchNav(screen) {
-  if (screen === 'beans' || screen === 'days' || screen === 'wiki') {
+  if (screen === 'beans' || screen === 'days' || screen === 'wiki' || screen === 'preference') {
     _lastMainTab = screen;
     showScreen(screen);
     window.scrollTo(0, 0);
@@ -263,6 +265,7 @@ function switchNav(screen) {
     if (screen === 'beans') renderBeansList();
     if (screen === 'days') renderDaysList();
     if (screen === 'wiki') renderWikiGrid();
+    if (screen === 'preference') renderPreferenceScreen();
   } else {
     showScreen(screen);
   }
@@ -323,6 +326,165 @@ function toggleWikiItemExpand(itemId) {
   if (_expandedWikiIds.has(itemId)) _expandedWikiIds.delete(itemId);
   else _expandedWikiIds.add(itemId);
   renderWikiCategoryList();
+}
+
+/* ══════════════════════ 好み(記録サマリー + AI傾向分析) ══════════════════════
+ * 記録サマリーはAI不要・端末内IndexedDBの集計のみ(即時表示)。
+ * AI傾向分析は★評価付きの記録が5件以上の場合のみ有効化し、ユーザーが明示的に
+ * 「分析する」ボタンを押したときだけ /api/recommend を呼ぶ(自動実行しない、設計書1参照)。
+ * 分析結果は settings.preferenceAnalysis に保存し、次回タブを開いたときに再表示する。 */
+const PREFERENCE_MIN_RATED_ENTRIES = 5;
+let _preferenceAnalyzing = false;
+
+// 記録した豆の種類数・日々の記録総数・★評価付き件数・記録開始からの日数を集計する。
+function computePreferenceSummary() {
+  const ratedCount = entriesCache.filter((e) => e.rating > 0).length;
+  const createdDates = [
+    ...beansCache.map((b) => b.createdAt),
+    ...entriesCache.map((e) => e.createdAt),
+  ].filter(Boolean).map((d) => new Date(d).getTime()).filter((t) => !isNaN(t));
+  let days = 0;
+  if (createdDates.length > 0) {
+    const earliest = Math.min(...createdDates);
+    days = Math.max(0, Math.floor((Date.now() - earliest) / (24 * 60 * 60 * 1000)));
+  }
+  return {
+    beanCount: beansCache.length,
+    entryCount: entriesCache.length,
+    ratedCount,
+    days,
+  };
+}
+
+// ★評価付きのentriesのみを取り、紐づくbeanのorigin/roast/processと結合した軽量配列を返す。
+// text/photo/name/shopは送らない(プライバシー方針、設計書1参照)。
+function ratedEntriesForRecommend() {
+  return entriesCache
+    .filter((e) => e.rating > 0)
+    .map((e) => {
+      const bean = beansCache.find((b) => b.id === e.beanId);
+      return {
+        origin: (bean && bean.origin) || '',
+        roast: (bean && bean.roast) || '',
+        process: (bean && bean.process) || '',
+        brew: e.brew || '',
+        rating: e.rating,
+      };
+    });
+}
+
+function preferenceSummaryHtml() {
+  const s = computePreferenceSummary();
+  return `
+    <div class="preference-summary-section">
+      <div class="preference-section-title">記録サマリー</div>
+      <div class="preference-summary-grid">
+        <div class="preference-summary-card">
+          <div class="value">${s.beanCount}</div>
+          <div class="label">種類の豆</div>
+        </div>
+        <div class="preference-summary-card">
+          <div class="value">${s.entryCount}</div>
+          <div class="label">日々の記録</div>
+        </div>
+        <div class="preference-summary-card">
+          <div class="value">${s.ratedCount}</div>
+          <div class="label">★評価付きの記録</div>
+        </div>
+        <div class="preference-summary-card">
+          <div class="value">${s.days}</div>
+          <div class="label">日、記録を継続中</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function preferenceRecommendationCardHtml(rec) {
+  return `
+    <div class="preference-reco-card">
+      <div class="preference-reco-title">${escapeHtml(rec.title || '')}</div>
+      <div class="preference-reco-tags">
+        ${rec.origin ? `<span class="chip">${escapeHtml(rec.origin)}</span>` : ''}
+        ${rec.roast ? `<span class="chip">${escapeHtml(rec.roast)}</span>` : ''}
+        ${rec.process ? `<span class="chip">${escapeHtml(rec.process)}</span>` : ''}
+      </div>
+      <div class="preference-reco-reason">${escapeHtml(rec.reason || '')}</div>
+    </div>
+  `;
+}
+
+function renderPreferenceScreen() {
+  const container = document.getElementById('preference-content');
+  const rated = ratedEntriesForRecommend();
+  const ratedCount = rated.length;
+  const analysis = settings.preferenceAnalysis;
+
+  let analysisSectionHtml = '';
+  if (ratedCount < PREFERENCE_MIN_RATED_ENTRIES) {
+    const remaining = PREFERENCE_MIN_RATED_ENTRIES - ratedCount;
+    analysisSectionHtml = `
+      <div class="preference-section-title">AI傾向分析・おすすめ</div>
+      <div class="empty-state">
+        <div class="empty-title">もう少し記録をためましょう</div>
+        <div class="empty-desc">あと${remaining}件、★付きの記録をためると<br>AIによる傾向分析が使えます</div>
+      </div>
+    `;
+  } else {
+    const hasNew = analysis && ratedCount > analysis.basedOnCount;
+    const analyzeLabel = !analysis ? '分析する' : (hasNew ? '更新する' : '再分析する');
+    const analyzingHtml = _preferenceAnalyzing
+      ? `<div class="preference-analysis-loading">分析しています…(10〜30秒程度)</div>`
+      : '';
+    analysisSectionHtml = `
+      <div class="preference-section-title">AI傾向分析・おすすめ</div>
+      <div class="preference-privacy-note">分析のため、記録の傾向(産地・焙煎度など)を外部のAIサービスに送信します。</div>
+      ${analysis ? `
+        ${hasNew ? `<div class="preference-update-badge">${ratedCount - analysis.basedOnCount}件の新しい記録があります</div>` : ''}
+        <div class="preference-analysis-card">
+          <div class="preference-analysis-summary">${escapeHtml(analysis.summary || '')}</div>
+        </div>
+        <div class="preference-reco-list">
+          ${(analysis.recommendations || []).map(preferenceRecommendationCardHtml).join('')}
+        </div>
+      ` : ''}
+      ${analyzingHtml}
+      <button class="preference-analyze-btn${hasNew ? ' highlight' : ''}" ${_preferenceAnalyzing ? 'disabled' : ''} onclick="if(!_touchGuard()) runPreferenceAnalysis()">${analyzeLabel}</button>
+    `;
+  }
+
+  container.innerHTML = preferenceSummaryHtml() + `<div class="preference-analysis-section">${analysisSectionHtml}</div>`;
+}
+
+async function runPreferenceAnalysis() {
+  if (_preferenceAnalyzing) return;
+  const rated = ratedEntriesForRecommend();
+  if (rated.length < PREFERENCE_MIN_RATED_ENTRIES) return;
+
+  _preferenceAnalyzing = true;
+  renderPreferenceScreen();
+
+  try {
+    const res = await fetch('/api/recommend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entries: rated }),
+    });
+    if (!res.ok) throw new Error('recommend failed');
+    const data = await res.json();
+    settings.preferenceAnalysis = {
+      summary: data.summary || '',
+      recommendations: data.recommendations || [],
+      analyzedAt: new Date().toISOString(),
+      basedOnCount: rated.length,
+    };
+    saveSettings();
+  } catch (_) {
+    showToast('分析に失敗しました。しばらくしてからお試しください');
+  } finally {
+    _preferenceAnalyzing = false;
+    renderPreferenceScreen();
+  }
 }
 
 function openSettings() {

@@ -22,7 +22,7 @@
 - DNS: Cloudflareで`coffee`のCNAME/Aレコードを`willoa.net`ゾーンに追加(DNS onlyモード、既存の`bus`と同じ)
 
 ## 画面構成
-ボトムナビ3タブ(SPEC.md §2.2通り): **豆**(一覧)/ **＋**(中央の大きい丸ボタン、豆追加)/ **日々**(全豆のEntryを日付順)。設定はボトムナビに含めず、豆・日々画面右上の歯車アイコンから別画面へ遷移する。
+ボトムナビ4タブ(2026-11-24「好み」タブ追加により4タブ構成が確定。設計書1`.claude/plan.md`参照): **豆**(一覧)/ **日々**(全豆のEntryを日付順)/ **豆知識**(コーヒーの基本をカテゴリ別に確認)/ **好み**(記録サマリー+AI傾向分析・おすすめ、★アイコン)。豆を追加する操作はボトムナビではなく、豆/日々/豆知識タブ共通のメインFAB(＋ボタン)経由の小メニュー(「豆を追加」「ひとことを追加」)から行う。設定はボトムナビに含めず、各画面右上の歯車アイコンから別画面へ遷移する。ユーザーより「好みタブがボトムメニューの最後の機能」と明言済み(今後5つ目のタブ追加は想定しない)。
 
 ## データモデル(端末内IndexedDB、DB名`beandiary`案)
 - `beans`ストア: id/photo/name/shop/origin/roast/process/purchaseDate/taste{酸味,苦味,甘味,コク,香り}/rating/brew/flavorNotes/sourceUrl/createdAt(SPEC §2.1)
@@ -39,6 +39,15 @@
 - APIキー(`ANTHROPIC_API_KEY`)はサーバー環境変数のみ。クライアントに置かない
 - 設定の「写真からの自動入力」トグルは**初期状態でON**(説明文「豆を判別するため、写真を外部のAIサービスに送信します」を必ず表示)。OFF時は写真を送信しない
 - レート制限: `/api/identify`専用に厳しめのリミッター(`express-rate-limit`、例: 1分あたり10回程度)を適用する。SGBusNaviの2段構成レート制限を参考にする
+
+## AI好み分析(「好み」タブ、2026-11-24追加)
+- エンドポイント: `POST /api/recommend`、リクエスト`{ entries: [{ origin, roast, process, brew, rating }, ...] }`(画像は含めない、最大50件)
+- モデル: `claude-sonnet-4-6`(`/api/identify`と統一)。web_searchは**使わない**(実在の商品名・ロースター名・店名を提案させないため)。`tools`+`tool_choice: {type:'tool', name:'recommend_beans'}`で構造化出力を強制(web_search不使用のため強制して問題ない)
+- レスポンス: `{ summary, recommendations: [{title, origin, roast, process, reason}] }` を3件固定。実在商品ではなく「産地×焙煎度×精製方法」のような特徴の組み合わせのみを提案する(ハルシネーション対策、システムプロンプトで明記)
+- 対象データ: `entries`のうち`rating > 0`(★評価済み)のみ。各エントリの自由記述`text`・写真・豆名・店名は送らない(送信データ最小化のプライバシー方針)。★評価付きの記録が5件未満の場合はタブ内で空状態を表示し、AI呼び出しは行わない
+- 送信は「分析する/再分析する/更新する」ボタンをユーザーが明示的に押したときのみ(自動実行しない)。専用の同意トグルは設定画面に追加しない(ボタン自体が同意ジェスチャーになるため)
+- 分析結果はサーバーに保存しない(ステートレスなリレーのみ)。端末側では`settings.preferenceAnalysis`(localStorage、新規IndexedDBストアは作らない)に`{summary, recommendations, analyzedAt, basedOnCount}`として保存し、次回タブを開いたときに前回結果を表示する
+- レート制限: `recommendLimiter`(1分あたり5回、`/api/identify`より厳しい)
 
 ## カメラ
 `@capacitor/camera`を新規導入する(ネイティブ`<input capture>`方式は不採用。Capacitor WKWebView上での動作安定性とカメラ/ライブラリの明示選択UIのため)。iOS `Info.plist`に`NSCameraUsageDescription`・`NSPhotoLibraryUsageDescription`の追加が必須(CIワークフローにPlistBuddyステップを追加、SGBusNaviが位置情報キーを追加した時と同型の変更)。
@@ -67,7 +76,7 @@ CSS変数の二層構造(ベース変数→意味的エイリアス、SGBusNavi�
 日本語UI固定。SG在住Naviの`data-i18n`+`STRINGS.ja`機構は導入しない(SGBusNaviが英語固定でi18n機構を導入していない前例と同じ判断。過剰な抽象化を避ける)。文字列は直接HTML/JSに日本語で書く。
 
 ## スコープ外(初版で作らないもの)
-傾向(統計)画面・味のレーダーチャート・並び替え/フィルタ拡張・JSONエクスポート単体機能・SG店舗情報との連携・日々のメモへの味タグ付け・「今日の一杯」リマインド・クラウド同期・アカウント機能・通知/リマインド設定・本番App Store審査提出(今回のゴールはTestFlightまで)。
+味のレーダーチャート(豆単体の味評価は別途実装済み。「傾向」としての統計画面は「好み」タブの記録サマリー+AI分析で限定的に対応済み、2026-11-24)・並び替え/フィルタ拡張・JSONエクスポート単体機能・SG店舗情報との連携・日々のメモへの味タグ付け・「今日の一杯」リマインド・クラウド同期・アカウント機能・通知/リマインド設定・本番App Store審査提出(今回のゴールはTestFlightまで)。
 
 ## 開発フロー
 このリポジトリも`sg-weekend-app`と同じ規約に従う: 新機能・複数ファイルに跨る修正はplanner→orchestrator(builder→checker→closer)の順。設計の経緯は`.claude/plan.md`に末尾追記(「設計書N」の連番、このリポジトリ専用に1から開始)。

@@ -60,7 +60,18 @@ const identifyLimiter = rateLimit({
   message: { error: 'Too many requests. Please wait a moment and try again.' },
 });
 
+// /api/recommendは「まとめて振り返る」意図的な操作で連打の正当な理由が薄いため、
+// /api/identify(1分10回)よりやや厳しくする(設計書1参照)。
+const recommendLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1分
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please wait a moment and try again.' },
+});
+
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // SPEC §4: 画像サイズ上限 約8MB
+const MAX_RECOMMEND_ENTRIES = 50; // /api/recommend に送るエントリ件数の上限
 
 const ROAST_VALUES = ['浅煎り', '中浅煎り', '中煎り', '中深煎り', '深煎り'];
 const PROCESS_VALUES = ['ウォッシュド', 'ナチュラル', 'ハニー', 'その他'];
@@ -94,6 +105,69 @@ const IDENTIFY_BEAN_TOOL = {
     },
   },
 };
+
+const RECOMMEND_TOOL = {
+  name: 'recommend_beans',
+  description: 'ユーザーの★評価付きの記録傾向から、次に試すとよさそうな豆の「特徴の組み合わせ」を3件まとめて報告する。実在の商品名・ロースター名は絶対に出さないこと。',
+  input_schema: {
+    type: 'object',
+    required: ['summary', 'recommendations'],
+    properties: {
+      summary: { type: 'string', description: 'これまでの記録から読み取れる好みの傾向を要約する一言(1〜2文)' },
+      recommendations: {
+        type: 'array',
+        minItems: 3,
+        maxItems: 3,
+        items: {
+          type: 'object',
+          required: ['title', 'origin', 'roast', 'process', 'reason'],
+          properties: {
+            title: { type: 'string', description: '特徴の組み合わせを表す短い見出し(例: 「エチオピア産 × 浅煎り × ウォッシュド」)' },
+            origin: { type: 'string', description: '産地' },
+            roast: { type: 'string', enum: ROAST_VALUES },
+            process: { type: 'string', enum: PROCESS_VALUES },
+            reason: { type: 'string', description: 'この組み合わせを勧める理由と期待される風味の一言' },
+          },
+        },
+      },
+    },
+  },
+};
+
+// web_searchは使わない(実在商品を検索・提案させないための方針、設計書1参照)。
+// そのためpause_turnループは不要で、単発のmessages.create()のみで完結する。
+async function recommendBeans(entries) {
+  if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
+  const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+
+  const messages = [
+    {
+      role: 'user',
+      content: [{ type: 'text', text: JSON.stringify(entries) }],
+    },
+  ];
+
+  const res = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1024,
+    system: `あなたはコーヒー豆の記録アプリ「Bean Diary」の好み分析アシスタントです。
+ユーザーの★評価付きの記録(各要素は origin[産地]・roast[焙煎度]・process[精製方法]・brew[淹れ方]・rating[1〜5の評価]のJSON配列)を受け取り、
+評価の傾向から好みを分析してください。
+重要な制約: 実在の商品名・ブランド名・ロースター名・店名は絶対に出さないこと。あなたはWeb検索ができないため、
+実在商品を挙げることは不正確な情報(ハルシネーション)になります。必ず「産地×焙煎度×精製方法」のような
+特徴の組み合わせとして提案してください。
+必ず recommend_beans ツールを1回呼んで結果を報告してください。`,
+    messages,
+    tools: [RECOMMEND_TOOL],
+    tool_choice: { type: 'tool', name: 'recommend_beans' },
+  });
+
+  if (res.stop_reason === 'refusal') throw new Error('request refused');
+
+  const toolUse = res.content?.find((b) => b.type === 'tool_use' && b.name === 'recommend_beans');
+  if (!toolUse) throw new Error('recommend_beans tool not called');
+  return toolUse.input;
+}
 
 // サーバー側ツール(web_search)はAPI内部で最大10回まで自動反復し、それを超えると
 // stop_reason:'pause_turn'で一旦返ってくる。SPEC §4通り、その場合は会話をそのまま
@@ -165,6 +239,24 @@ app.post('/api/identify', identifyLimiter, async (req, res) => {
   } catch (err) {
     console.error('[identify] error', err);
     res.status(500).json({ error: 'failed to identify bean' });
+  }
+});
+
+app.post('/api/recommend', recommendLimiter, async (req, res) => {
+  try {
+    const { entries } = req.body || {};
+    if (!Array.isArray(entries) || entries.length === 0) {
+      return res.status(400).json({ error: 'entries must be a non-empty array' });
+    }
+    if (entries.length > MAX_RECOMMEND_ENTRIES) {
+      return res.status(400).json({ error: `entries must be at most ${MAX_RECOMMEND_ENTRIES} items` });
+    }
+
+    const result = await recommendBeans(entries);
+    res.json(result);
+  } catch (err) {
+    console.error('[recommend] error', err);
+    res.status(500).json({ error: 'failed to analyze preferences' });
   }
 });
 

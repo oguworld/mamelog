@@ -203,6 +203,55 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
   font-size: 14px; line-height: 1.7; color: var(--text-muted); text-align: left;
 }
 
+/* ── 好み: 記録サマリー + AI傾向分析 ── */
+.preference-section-title {
+  font-size: 12px; font-weight: 700; color: var(--text-muted);
+  padding-left: 4px; margin-bottom: 2px;
+}
+.preference-summary-section { display: flex; flex-direction: column; gap: 10px; }
+.preference-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.preference-summary-card {
+  background: var(--warm-white); border-radius: var(--radius-card);
+  padding: 16px; box-shadow: var(--shadow-card);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.preference-summary-card .value { font-size: 26px; font-weight: 700; color: var(--caramel); }
+.preference-summary-card .label { font-size: 11.5px; color: var(--text-muted); }
+
+.preference-analysis-section { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.preference-privacy-note { font-size: 11.5px; line-height: 1.6; color: var(--text-muted); padding: 0 4px; }
+
+.preference-update-badge {
+  align-self: flex-start; background: var(--caramel-pale); color: var(--caramel);
+  font-size: 11.5px; font-weight: 700; padding: 6px 14px; border-radius: var(--radius-chip);
+}
+
+.preference-analysis-card {
+  background: var(--warm-white); border-radius: var(--radius-card);
+  padding: 16px; box-shadow: var(--shadow-card);
+}
+.preference-analysis-summary { font-size: 14px; line-height: 1.7; color: var(--espresso); }
+
+.preference-reco-list { display: flex; flex-direction: column; gap: 10px; }
+.preference-reco-card {
+  background: var(--warm-white); border-radius: var(--radius-card);
+  padding: 16px; box-shadow: var(--shadow-card);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.preference-reco-title { font-size: 15px; font-weight: 700; color: var(--espresso); }
+.preference-reco-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.preference-reco-reason { font-size: 12.5px; line-height: 1.6; color: var(--text-muted); }
+
+.preference-analysis-loading { font-size: 12.5px; color: var(--text-muted); text-align: center; padding: 6px 0; }
+
+.preference-analyze-btn {
+  width: 100%; background: var(--warm-white); border-radius: var(--radius-btn);
+  border: 1.5px dashed var(--caramel); color: var(--caramel); font-weight: 700;
+  font-size: 14px; padding: 14px; cursor: pointer; font-family: inherit; min-height: 44px;
+}
+.preference-analyze-btn.highlight { background: var(--caramel); color: var(--warm-white); border-style: solid; }
+.preference-analyze-btn:disabled { opacity: 0.6; cursor: default; }
+
 .round-btn {
   width: 44px; height: 44px; border-radius: 50%; border: 0;
   display: grid; place-items: center; cursor: pointer; flex: none;
@@ -428,15 +477,18 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 .toggle-switch.on { background: var(--caramel); }
 .toggle-switch.on .knob { left: 23px; }
 
-/* ── ボトムナビ ── */
+/* ── ボトムナビ ──
+ * 4タブ(豆/日々/豆知識/好み)構成。.nav-itemは最小タップ領域44×44pxを確保しつつ、
+ * 375px幅等の狭い端末でも4項目+左右paddingが収まるようclamp()で可変にする
+ * (96px固定×4+padding56pxだと440px必要で、375px幅の端末では収まらないため調整済み)。 */
 .bottom-nav {
   position: fixed; left: 50%; transform: translateX(-50%);
   width: min(480px, 100%); bottom: 0; height: 92px; box-sizing: border-box;
-  padding: 10px 28px 26px; background: var(--warm-white); border-top: 1px solid var(--sand);
+  padding: 10px 12px 26px; background: var(--warm-white); border-top: 1px solid var(--sand);
   display: flex; align-items: flex-start; justify-content: space-between; z-index: 5000;
 }
 .nav-item {
-  width: 96px; min-height: 44px; display: flex; flex-direction: column; align-items: center;
+  width: clamp(64px, 22vw, 96px); min-height: 44px; display: flex; flex-direction: column; align-items: center;
   gap: 3px; color: var(--text-muted); background: none; border: 0; cursor: pointer; font-family: inherit;
 }
 .nav-item.active { color: var(--caramel); }
