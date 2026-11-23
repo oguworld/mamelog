@@ -546,29 +546,31 @@ function beanCardHtml(bean) {
 
   return `
     <div class="bean-card" role="button" onclick="openBeanDetail('${bean.id}')">
-      <div class="bean-thumb" style="${beanThumbStyle(bean)}">${bean.photo ? '' : beanIconSvg(36)}</div>
-      <div class="bean-card-body">
-        <div class="bean-card-top-row">
-          <div class="bean-card-name">${escapeHtml(bean.name)}</div>
-          <button class="bean-card-toggle" aria-label="詳細を開閉" onclick="toggleBeanCardExpand('${bean.id}', event)">
-            <svg class="chevron${expanded ? ' open' : ''}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A6455" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-        </div>
-        <div class="bean-card-meta">${escapeHtml(meta)}</div>
-        <div class="bean-card-shop">${escapeHtml(bean.shop || '')}</div>
-        <div class="star-row">${starsHtml(bean.rating)}</div>
-        ${expanded ? `
-        <div class="bean-card-expand">
-          <div class="bean-card-expand-toggle">
-            <span class="label">今日の一言で選べる</span>
-            <button class="toggle-switch${bean.inUse !== false ? ' on' : ''}" onclick="toggleBeanInUse('${bean.id}', event)"><span class="knob"></span></button>
+      <div class="bean-card-row">
+        <div class="bean-thumb" style="${beanThumbStyle(bean)}">${bean.photo ? '' : beanIconSvg(36)}</div>
+        <div class="bean-card-body">
+          <div class="bean-card-top-row">
+            <div class="bean-card-name">${escapeHtml(bean.name)}</div>
+            <button class="bean-card-toggle" aria-label="詳細を開閉" onclick="toggleBeanCardExpand('${bean.id}', event)">
+              <svg class="chevron${expanded ? ' open' : ''}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A6455" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
           </div>
-          ${tasteRadar ? `<div class="taste-radar-wrap">${tasteRadar}</div>` : ''}
-          ${expandRowParts.length ? `<div class="bean-card-expand-row">${escapeHtml(expandRowParts.join(' ・ '))}</div>` : ''}
-          ${bean.flavorNotes ? `<div class="bean-card-expand-notes">${escapeHtml(bean.flavorNotes)}</div>` : ''}
-          ${(!tasteRadar && !expandRowParts.length && !bean.flavorNotes) ? '<div class="bean-card-expand-row" style="color:var(--text-muted)">詳細情報はまだありません</div>' : ''}
-        </div>` : ''}
+          <div class="bean-card-meta">${escapeHtml(meta)}</div>
+          <div class="bean-card-shop">${escapeHtml(bean.shop || '')}</div>
+          <div class="star-row">${starsHtml(bean.rating)}</div>
+        </div>
       </div>
+      ${expanded ? `
+      <div class="bean-card-expand">
+        <div class="bean-card-expand-toggle">
+          <span class="label">今日の一言で選べる</span>
+          <button class="toggle-switch${bean.inUse !== false ? ' on' : ''}" onclick="toggleBeanInUse('${bean.id}', event)"><span class="knob"></span></button>
+        </div>
+        ${tasteRadar ? `<div class="taste-radar-wrap">${tasteRadar}</div>` : ''}
+        ${expandRowParts.length ? `<div class="bean-card-expand-row">${escapeHtml(expandRowParts.join(' ・ '))}</div>` : ''}
+        ${bean.flavorNotes ? `<div class="bean-card-expand-notes">${escapeHtml(bean.flavorNotes)}</div>` : ''}
+        ${(!tasteRadar && !expandRowParts.length && !bean.flavorNotes) ? '<div class="bean-card-expand-row" style="color:var(--text-muted)">詳細情報はまだありません</div>' : ''}
+      </div>` : ''}
     </div>`;
 }
 
@@ -721,8 +723,10 @@ function openBeanPicker() {
   const active = activeBeans();
   list.innerHTML = active.map((bean) => `
     <button class="bean-card" style="padding:10px" onclick="selectDaysBean('${bean.id}')">
-      <div class="bean-thumb" style="width:48px;height:48px;${beanThumbStyle(bean)}">${bean.photo ? '' : beanIconSvg(22)}</div>
-      <div class="bean-card-body"><div class="bean-card-name" style="font-size:14px">${escapeHtml(bean.name)}</div></div>
+      <div class="bean-card-row">
+        <div class="bean-thumb" style="width:48px;height:48px;${beanThumbStyle(bean)}">${bean.photo ? '' : beanIconSvg(22)}</div>
+        <div class="bean-card-body"><div class="bean-card-name" style="font-size:14px">${escapeHtml(bean.name)}</div></div>
+      </div>
     </button>
   `).join('') || '<div style="color:var(--text-muted);font-size:14px;text-align:center;padding:12px">使用中の豆がありません。豆の編集画面で「今日の一言で選べるようにする」をONにしてください。</div>';
   overlay.classList.add('visible');
