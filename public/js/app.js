@@ -994,10 +994,30 @@ async function confirmDeleteAll() {
   showToast('削除しました');
 }
 
+/* ══════════════════════ Service Worker登録・更新検知 ══════════════════════
+ * ホーム画面に追加したPWA(standaloneモード)はリロードボタンが無く、特に
+ * 変更が反映されにくい。新しいSWが見つかったら初回のcontrollerchangeで
+ * 1回だけ自動リロードし、タブ/アプリ復帰時にも更新確認する(姉妹アプリと同じ方式)。 */
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloading) return;
+    reloading = true;
+    window.location.reload();
+  });
+  navigator.serviceWorker.register('/sw.js').then((reg) => {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') reg.update();
+    });
+  }).catch(() => { /* SW登録に失敗してもアプリ自体は動く */ });
+}
+
 /* ══════════════════════ 初期化 ══════════════════════ */
 async function init() {
   loadSettings();
   applyTheme();
+  registerServiceWorker();
   _db = await openDB();
   [beansCache, entriesCache] = await Promise.all([dbGetAll('beans'), dbGetAll('entries')]);
   renderRoastFilterChips();
