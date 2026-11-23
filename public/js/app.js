@@ -258,6 +258,7 @@ function switchNav(screen) {
   if (screen === 'beans' || screen === 'days' || screen === 'wiki') {
     _lastMainTab = screen;
     showScreen(screen);
+    window.scrollTo(0, 0);
     updateNavActiveState(screen);
     if (screen === 'beans') renderBeansList();
     if (screen === 'days') renderDaysList();
