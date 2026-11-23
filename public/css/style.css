@@ -155,6 +155,10 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 .bean-card-name { flex: 1; min-width: 0; font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bean-card-meta, .bean-card-shop { font-size: 12.5px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .star-row { display: flex; gap: 2px; margin-top: 2px; }
+.bean-card-latest-entry {
+  font-size: 12.5px; color: var(--espresso-light); margin-top: 4px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 .bean-card-toggle {
   flex: none; width: 32px; height: 32px; border-radius: 50%; border: 0;

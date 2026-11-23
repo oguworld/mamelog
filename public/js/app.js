@@ -537,6 +537,9 @@ function beanCardHtml(bean) {
   const expandRowParts = [];
   if (bean.purchaseDate) expandRowParts.push(`購入 ${bean.purchaseDate.slice(5).replace('-', '/')}`);
   if (bean.brew) expandRowParts.push(bean.brew);
+  const latestEntry = entriesCache
+    .filter((e) => e.beanId === bean.id)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
 
   return `
     <div class="bean-card" role="button" data-bean-id="${bean.id}" onclick="handleBeanCardTap('${bean.id}', event)">
@@ -552,6 +555,7 @@ function beanCardHtml(bean) {
           <div class="bean-card-meta">${escapeHtml(meta)}</div>
           <div class="bean-card-shop">${escapeHtml(bean.shop || '')}</div>
           <div class="star-row">${starsHtml(bean.rating)}</div>
+          ${(!expanded && latestEntry) ? `<div class="bean-card-latest-entry">${escapeHtml(latestEntry.text ? `"${latestEntry.text}"` : '(写真)')}</div>` : ''}
         </div>
       </div>
       ${expanded ? `
