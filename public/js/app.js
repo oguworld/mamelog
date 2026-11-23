@@ -417,24 +417,28 @@ function applyPickedPhoto(target, dataUrl) {
       document.getElementById('identify-trigger').style.display = 'block';
     }
   } else if (target === 'days') {
+    if (_daysQuickPhotos.length >= MAX_QUICK_ENTRY_PHOTOS) { showToast(`写真は${MAX_QUICK_ENTRY_PHOTOS}枚まで添付できます`); return; }
     _daysQuickPhotos.push(dataUrl);
     renderQuickEntryPhotos();
     showToast('写真を添付しました');
   }
 }
 
+const MAX_QUICK_ENTRY_PHOTOS = 3;
+
 function renderQuickEntryPhotos() {
   const wrap = document.getElementById('quick-entry-photos');
+  const addSlot = _daysQuickPhotos.length < MAX_QUICK_ENTRY_PHOTOS ? `
+    <button class="photo-add-slot" aria-label="写真を追加" onclick="if(!_touchGuard()) pickPhoto('days')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+    </button>` : '';
   wrap.innerHTML = _daysQuickPhotos.map((url, i) => `
     <div class="photo-thumb-multi" style="background-image:url(${url})">
       <button class="photo-thumb-remove" aria-label="写真を削除" onclick="removeQuickEntryPhoto(${i}, event)">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
       </button>
     </div>
-  `).join('') + `
-    <button class="photo-add-slot" aria-label="写真を追加" onclick="if(!_touchGuard()) pickPhoto('days')">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-    </button>`;
+  `).join('') + addSlot;
 }
 
 function removeQuickEntryPhoto(index, event) {

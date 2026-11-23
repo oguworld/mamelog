@@ -457,6 +457,7 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 }
 .confirm-dialog {
   background: var(--warm-white); border-radius: var(--radius-card); padding: 24px;
+  border: 1px solid var(--sand);
   width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 14px;
   /* キーボード表示でビューポートが狭まっても画面全体が押し上げられないよう、
      ダイアログ自身の中でスクロールさせる安全弁 */
