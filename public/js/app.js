@@ -208,6 +208,7 @@ function showScreen(name) {
     document.getElementById('screen-' + s).classList.toggle('visible', s === name);
   });
   document.getElementById('bottom-nav').style.display = name === 'settings' ? 'none' : 'flex';
+  document.getElementById('quick-entry-fab-layer').style.display = (name === 'days' || name === 'bean-detail') ? 'block' : 'none';
 }
 
 function updateNavActiveState(highlight) {
@@ -524,14 +525,27 @@ function renderDetail(beanId) {
 }
 
 /* ══════════════════════ 日々タブ ══════════════════════ */
+// 「使用中」の豆のみ(日々の入力欄・豆選択シートで選べる対象)。新しい順。
+function activeBeans() {
+  return beansCache.filter((b) => b.inUse !== false).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+function updateQuickEntryBeanLabel() {
+  const bean = beansCache.find((b) => b.id === _daysSelectedBeanId);
+  document.getElementById('quick-entry-bean-label').textContent = bean ? bean.name : '豆を選ぶ';
+}
+
 function renderDaysList() {
   const entries = entriesCache.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   document.getElementById('days-empty').style.display = entries.length === 0 ? 'block' : 'none';
 
-  if (!_daysSelectedBeanId && settings.lastUsedBeanId) _daysSelectedBeanId = settings.lastUsedBeanId;
-  if (!_daysSelectedBeanId && beansCache.length) _daysSelectedBeanId = beansCache[0].id;
-  const selectedBean = beansCache.find((b) => b.id === _daysSelectedBeanId);
-  document.getElementById('days-bean-select-label').textContent = selectedBean ? selectedBean.name : '豆を選ぶ';
+  const active = activeBeans();
+  if (_daysSelectedBeanId && !active.some((b) => b.id === _daysSelectedBeanId)) _daysSelectedBeanId = null;
+  if (!_daysSelectedBeanId && settings.lastUsedBeanId && active.some((b) => b.id === settings.lastUsedBeanId)) {
+    _daysSelectedBeanId = settings.lastUsedBeanId;
+  }
+  if (!_daysSelectedBeanId && active.length) _daysSelectedBeanId = active[0].id;
+  updateQuickEntryBeanLabel();
 
   const groups = [];
   let currentLabel = null;
@@ -565,15 +579,16 @@ function renderDaysList() {
   wireLongPress(document.querySelectorAll('#days-list .entry-card'), (el) => openEntryActions(el.dataset.entryId));
 }
 
-function openBeanPicker(context) {
+function openBeanPicker() {
   const overlay = document.getElementById('bean-picker-overlay');
   const list = document.getElementById('bean-picker-list');
-  list.innerHTML = beansCache.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((bean) => `
+  const active = activeBeans();
+  list.innerHTML = active.map((bean) => `
     <button class="bean-card" style="padding:10px" onclick="selectDaysBean('${bean.id}')">
       <div class="bean-thumb" style="width:48px;height:48px;${beanThumbStyle(bean)}">${bean.photo ? '' : beanIconSvg(22)}</div>
       <div class="bean-card-body"><div class="bean-card-name" style="font-size:14px">${escapeHtml(bean.name)}</div></div>
     </button>
-  `).join('') || '<div style="color:var(--text-muted);font-size:14px;text-align:center;padding:12px">まだ豆が登録されていません</div>';
+  `).join('') || '<div style="color:var(--text-muted);font-size:14px;text-align:center;padding:12px">使用中の豆がありません。豆の編集画面で「今日の一言で選べるようにする」をONにしてください。</div>';
   overlay.classList.add('visible');
 }
 function closeBeanPicker() {
@@ -581,15 +596,38 @@ function closeBeanPicker() {
 }
 function selectDaysBean(beanId) {
   _daysSelectedBeanId = beanId;
-  const bean = beansCache.find((b) => b.id === beanId);
-  document.getElementById('days-bean-select-label').textContent = bean ? bean.name : '豆を選ぶ';
+  updateQuickEntryBeanLabel();
   closeBeanPicker();
+}
+
+/* ══════════════════════ 「今日の一言」入力シート(FAB) ══════════════════════ */
+let _quickEntryContext = 'days';
+
+function openQuickEntrySheetFromFab() {
+  const context = document.getElementById('screen-bean-detail').classList.contains('visible') ? 'detail' : 'days';
+  openQuickEntrySheet(context);
+}
+
+function openQuickEntrySheet(context) {
+  _quickEntryContext = context;
+  document.getElementById('quick-entry-text').value = '';
+  document.getElementById('quick-entry-bean-select').style.display = context === 'days' ? 'inline-flex' : 'none';
+  if (context === 'days') {
+    _daysQuickPhoto = null;
+    updateQuickEntryBeanLabel();
+  } else {
+    _detailQuickPhoto = null;
+  }
+  document.getElementById('quick-entry-overlay').classList.add('visible');
+}
+function closeQuickEntrySheet() {
+  document.getElementById('quick-entry-overlay').classList.remove('visible');
 }
 
 /* ══════════════════════ ひとこと(Entry)の追加・編集・削除 ══════════════════════ */
 async function submitQuickEntry(context) {
   const beanId = context === 'days' ? _daysSelectedBeanId : _currentBeanId;
-  const textInput = document.getElementById(context === 'days' ? 'days-entry-text' : 'detail-entry-text');
+  const textInput = document.getElementById('quick-entry-text');
   const text = textInput.value.trim();
   const photo = context === 'days' ? _daysQuickPhoto : _detailQuickPhoto;
 
@@ -605,6 +643,7 @@ async function submitQuickEntry(context) {
   settings.lastUsedBeanId = beanId;
   saveSettings();
 
+  closeQuickEntrySheet();
   if (context === 'days') renderDaysList(); else renderDetail(_currentBeanId);
   showToast('記録しました');
 }
@@ -702,6 +741,15 @@ let _addTaste = { 酸味: 0, 苦味: 0, 甘味: 0, コク: 0, 香り: 0 };
 let _addRating = 0;
 let _addFlavorNotes = '';
 let _addSourceUrl = '';
+let _addInUse = true;
+
+function renderAddInUseToggle() {
+  document.getElementById('add-in-use-toggle').classList.toggle('on', _addInUse);
+}
+function toggleAddInUse() {
+  _addInUse = !_addInUse;
+  renderAddInUseToggle();
+}
 
 function renderAddRoastRow() {
   renderPillRow('add-roast-row', ROAST_VALUES, _addRoast, (v) => { _addRoast = v; renderAddRoastRow(); });
@@ -741,6 +789,7 @@ function openAddForm(beanId) {
   _addRoast = null; _addProcess = null; _addRating = 0;
   _addTaste = { 酸味: 0, 苦味: 0, 甘味: 0, コク: 0, 香り: 0 };
   _addFlavorNotes = ''; _addSourceUrl = '';
+  _addInUse = true;
 
   const bean = beanId ? beansCache.find((b) => b.id === beanId) : null;
   document.getElementById('add-title').textContent = bean ? '豆を編集' : '豆を追加';
@@ -757,7 +806,9 @@ function openAddForm(beanId) {
     _addFlavorNotes = bean.flavorNotes || '';
     _addSourceUrl = bean.sourceUrl || '';
     _pendingPhotoDataUrl = bean.photo || null;
+    _addInUse = bean.inUse !== false;
   }
+  renderAddInUseToggle();
 
   const preview = document.getElementById('add-photo-preview');
   preview.querySelector('svg').style.display = _pendingPhotoDataUrl ? 'none' : 'block';
@@ -866,6 +917,7 @@ async function saveBean() {
     brew: document.getElementById('add-brew').value.trim(),
     flavorNotes: _addFlavorNotes,
     sourceUrl: _addSourceUrl,
+    inUse: _addInUse,
     createdAt: existing ? existing.createdAt : new Date().toISOString(),
   };
 

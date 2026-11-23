@@ -50,19 +50,6 @@
       </button>
     </div>
     <div class="screen-scroll-content">
-      <div class="quick-input-bar">
-        <button class="bean-chip-select" id="days-bean-select" onclick="if(!_touchGuard()) openBeanPicker('days')">
-          <span class="label" id="days-bean-select-label">豆を選ぶ</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7A6455" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-        </button>
-        <input type="text" id="days-entry-text" placeholder="今日の一杯、どうだった?">
-        <button class="round-btn ghost" aria-label="写真を添える" onclick="if(!_touchGuard()) pickPhoto('days')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-        </button>
-        <button class="round-btn primary" aria-label="記録する" onclick="if(!_touchGuard()) submitQuickEntry('days')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l14-7-5 14-2-6z"/></svg>
-        </button>
-      </div>
       <div id="days-list"></div>
       <div class="empty-state" id="days-empty" style="display:none">
         <div class="empty-title">まだ日々の記録がありません</div>
@@ -95,17 +82,6 @@
         <span class="header-sub" id="detail-entries-sub"></span>
       </div>
       <div class="timeline" id="detail-timeline"></div>
-    </div>
-    <div class="detail-quick-input">
-      <div class="quick-input-bar">
-        <input type="text" id="detail-entry-text" placeholder="気づいたことをひとこと…">
-        <button class="round-btn ghost" aria-label="写真を添える" onclick="if(!_touchGuard()) pickPhoto('detail')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-        </button>
-        <button class="round-btn primary" aria-label="記録する" onclick="if(!_touchGuard()) submitQuickEntry('detail')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l14-7-5 14-2-6z"/></svg>
-        </button>
-      </div>
     </div>
   </section>
 
@@ -163,6 +139,11 @@
           <label for="add-brew">淹れ方</label>
           <input type="text" id="add-brew" placeholder="例: ハンドドリップ 15g/240ml">
         </div>
+      </div>
+
+      <div class="field-toggle-row">
+        <span class="label">今日の一言で選べるようにする</span>
+        <button class="toggle-switch" id="add-in-use-toggle" onclick="if(!_touchGuard()) toggleAddInUse()"><span class="knob"></span></button>
       </div>
 
       <div class="taste-card">
@@ -270,8 +251,34 @@
     </button>
   </nav>
 
+  <!-- 「今日の一言」用FAB(日々タブ・豆の詳細画面でのみ表示、JSで出し分け) -->
+  <div class="fab-layer" id="quick-entry-fab-layer">
+    <button class="quick-entry-fab" aria-label="今日の一言を追加" onclick="if(!_touchGuard()) openQuickEntrySheetFromFab()">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>
+    </button>
+  </div>
+
   <input type="file" id="photo-input" accept="image/*" hidden>
   <input type="file" id="restore-input" accept="application/json" hidden onchange="if(!_touchGuard()) importBackup(event)">
+
+  <!-- 「今日の一言」入力シート(FABから開く。日々タブ/豆の詳細で共用) -->
+  <div class="overlay" id="quick-entry-overlay" onclick="if(event.target===this) closeQuickEntrySheet()">
+    <div class="confirm-dialog">
+      <div class="quick-input-bar" style="box-shadow:none">
+        <button class="bean-chip-select" id="quick-entry-bean-select" onclick="if(!_touchGuard()) openBeanPicker('days')">
+          <span class="label" id="quick-entry-bean-label">豆を選ぶ</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7A6455" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <input type="text" id="quick-entry-text" placeholder="気づいたことをひとこと…">
+        <button class="round-btn ghost" aria-label="写真を添える" onclick="if(!_touchGuard()) pickPhoto(_quickEntryContext)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        </button>
+        <button class="round-btn primary" aria-label="記録する" onclick="if(!_touchGuard()) submitQuickEntry(_quickEntryContext)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l14-7-5 14-2-6z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- 確認ダイアログ -->
   <div class="overlay" id="confirm-overlay">
