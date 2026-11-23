@@ -89,6 +89,37 @@ let _daysSelectedBeanId = null;
 const ROAST_VALUES = ['浅煎り', '中浅煎り', '中煎り', '中深煎り', '深煎り'];
 const PROCESS_VALUES = ['ウォッシュド', 'ナチュラル', 'ハニー', 'その他'];
 const TASTE_KEYS = ['酸味', '苦味', '甘味', 'コク', '香り'];
+
+// 5項目の味の評価をレーダーチャート(五角形)のSVGとして描画する。
+// 1件も評価が入っていない場合は空文字を返す(呼び出し側で「情報なし」扱いにする)。
+function tasteRadarSvg(taste, size) {
+  const hasAny = TASTE_KEYS.some((k) => taste && taste[k] > 0);
+  if (!hasAny) return '';
+  const cx = size / 2;
+  const cy = size / 2;
+  const maxR = size * 0.32;
+  const labelR = maxR + size * 0.14;
+  const pt = (i, r) => {
+    const angle = -Math.PI / 2 + i * (2 * Math.PI / 5);
+    return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
+  };
+  const grid = [1, 2, 3, 4, 5].map((g) => {
+    const points = TASTE_KEYS.map((_, i) => pt(i, (maxR * g) / 5).join(',')).join(' ');
+    return `<polygon points="${points}" fill="none" stroke="var(--sand)" stroke-width="1"/>`;
+  }).join('');
+  const axes = TASTE_KEYS.map((_, i) => {
+    const [x, y] = pt(i, maxR);
+    return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--sand)" stroke-width="1"/>`;
+  }).join('');
+  const dataPoints = TASTE_KEYS.map((k, i) => pt(i, (maxR * (taste[k] || 0)) / 5));
+  const dataPoly = `<polygon points="${dataPoints.map((p) => p.join(',')).join(' ')}" fill="rgba(164,82,31,0.3)" stroke="var(--caramel)" stroke-width="2"/>`;
+  const dots = dataPoints.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="var(--caramel)"/>`).join('');
+  const labels = TASTE_KEYS.map((k, i) => {
+    const [x, y] = pt(i, labelR);
+    return `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" font-size="${Math.max(10, size * 0.08)}" fill="var(--text-muted)" font-weight="700">${k}</text>`;
+  }).join('');
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${grid}${axes}${dataPoly}${dots}${labels}</svg>`;
+}
 const GRADIENTS = [
   ['#C98B5A', '#6B3B1F'], ['#8A5A3C', '#3B2418'], ['#D9A66E', '#9A5B2E'],
   ['#B9784A', '#5E331B'], ['#D9A66E', '#8A5230'],
@@ -375,8 +406,7 @@ function toggleBeanCardExpand(beanId, event) {
 function beanCardHtml(bean) {
   const meta = [bean.origin, bean.roast, bean.process].filter(Boolean).join(' ・ ');
   const expanded = _expandedBeanIds.has(bean.id);
-  const tasteHtml = TASTE_KEYS.filter((k) => bean.taste && bean.taste[k] > 0)
-    .map((k) => `<span class="taste-chip">${k} ${bean.taste[k]}</span>`).join('');
+  const tasteRadar = tasteRadarSvg(bean.taste, 130);
   const expandRowParts = [];
   if (bean.purchaseDate) expandRowParts.push(`購入 ${bean.purchaseDate.slice(5).replace('-', '/')}`);
   if (bean.brew) expandRowParts.push(bean.brew);
@@ -396,10 +426,10 @@ function beanCardHtml(bean) {
         <div class="star-row">${starsHtml(bean.rating)}</div>
         ${expanded ? `
         <div class="bean-card-expand">
-          ${tasteHtml ? `<div class="taste-chip-row">${tasteHtml}</div>` : ''}
+          ${tasteRadar ? `<div class="taste-radar-wrap">${tasteRadar}</div>` : ''}
           ${expandRowParts.length ? `<div class="bean-card-expand-row">${escapeHtml(expandRowParts.join(' ・ '))}</div>` : ''}
           ${bean.flavorNotes ? `<div class="bean-card-expand-notes">${escapeHtml(bean.flavorNotes)}</div>` : ''}
-          ${(!tasteHtml && !expandRowParts.length && !bean.flavorNotes) ? '<div class="bean-card-expand-row" style="color:var(--text-muted)">詳細情報はまだありません</div>' : ''}
+          ${(!tasteRadar && !expandRowParts.length && !bean.flavorNotes) ? '<div class="bean-card-expand-row" style="color:var(--text-muted)">詳細情報はまだありません</div>' : ''}
         </div>` : ''}
       </div>
     </div>`;
@@ -468,9 +498,8 @@ function renderDetail(beanId) {
   document.getElementById('detail-rating').innerHTML =
     `${starsHtml(bean.rating, 18).split('</svg>')[0]}</svg> ${(bean.rating || 0).toFixed(1)}`;
 
-  const tasteHtml = TASTE_KEYS.filter((k) => bean.taste && bean.taste[k] > 0)
-    .map((k) => `<span class="taste-chip">${k} ${bean.taste[k]}</span>`).join('');
-  document.getElementById('detail-taste').innerHTML = tasteHtml;
+  const tasteRadar = tasteRadarSvg(bean.taste, 180);
+  document.getElementById('detail-taste').innerHTML = tasteRadar;
 
   const entries = entriesCache.filter((e) => e.beanId === beanId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   document.getElementById('detail-entries-sub').textContent =
