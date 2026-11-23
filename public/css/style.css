@@ -40,7 +40,11 @@ html[data-theme="dark"] {
   color-scheme: dark;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
 
 html, body {
   margin: 0;
