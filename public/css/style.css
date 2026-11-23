@@ -388,6 +388,11 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
   display: none; align-items: center; justify-content: center; padding: 24px;
 }
 .overlay.visible { display: flex; }
+/* テキスト入力を伴うシートは画面上部に固定する(中央寄せだとキーボード表示時に
+   下部のボタンがキーボードの下に隠れてしまうため) */
+#quick-entry-overlay, #entry-edit-overlay {
+  align-items: flex-start; padding-top: 80px;
+}
 .confirm-dialog {
   background: var(--warm-white); border-radius: var(--radius-card); padding: 20px;
   width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 14px;
