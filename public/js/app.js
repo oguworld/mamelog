@@ -76,14 +76,13 @@ let beansCache = [];
 let entriesCache = [];
 let roastFilter = 'all';
 let _lastMainTab = 'beans';
-let _currentBeanId = null;
 let _editingBeanId = null;
-let _addReturnTarget = { type: 'list' };
 let _pendingPhotoDataUrl = null;
 let _identifyApplied = false;
 let _photoPickTarget = null;
 let _daysQuickPhoto = null;
-let _detailQuickPhoto = null;
+let _beanQuickPhoto = null;
+let _quickEntryBeanId = null;
 let _daysSelectedBeanId = null;
 
 const ROAST_VALUES = ['浅煎り', '中浅煎り', '中煎り', '中深煎り', '深煎り'];
@@ -201,7 +200,7 @@ function renderSettingsScreen() {
 }
 
 /* ══════════════════════ 画面遷移 ══════════════════════ */
-const ALL_SCREENS = ['beans', 'days', 'wiki', 'wiki-category', 'bean-detail', 'add', 'settings'];
+const ALL_SCREENS = ['beans', 'days', 'wiki', 'wiki-category', 'add', 'settings'];
 
 const FAB_ICON_ADD = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
 const FAB_ICON_PENCIL = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
@@ -226,7 +225,7 @@ function showScreen(name) {
     document.getElementById('screen-' + s).classList.toggle('visible', s === name);
   });
   document.getElementById('bottom-nav').style.display = name === 'settings' ? 'none' : 'flex';
-  const showFab = name === 'beans' || name === 'days' || name === 'bean-detail';
+  const showFab = name === 'beans' || name === 'days';
   document.getElementById('quick-entry-fab-layer').style.display = showFab ? 'block' : 'none';
   if (showFab) updateMainFab(name);
 }
@@ -402,8 +401,8 @@ function applyPickedPhoto(target, dataUrl) {
   } else if (target === 'days') {
     _daysQuickPhoto = dataUrl;
     showToast('写真を添付しました');
-  } else if (target === 'detail') {
-    _detailQuickPhoto = dataUrl;
+  } else if (target === 'bean') {
+    _beanQuickPhoto = dataUrl;
     showToast('写真を添付しました');
   }
 }
@@ -561,7 +560,7 @@ function beanCardHtml(bean) {
         </div>
       </div>
       ${expanded ? `
-      <div class="bean-card-expand">
+      <div class="bean-card-expand" onclick="event.stopPropagation()">
         <div class="bean-card-expand-toggle">
           <span class="label">今日の一言で選べる</span>
           <button class="toggle-switch${bean.inUse !== false ? ' on' : ''}" onclick="toggleBeanInUse('${bean.id}', event)"><span class="knob"></span></button>
@@ -570,6 +569,7 @@ function beanCardHtml(bean) {
         ${expandRowParts.length ? `<div class="bean-card-expand-row">${escapeHtml(expandRowParts.join(' ・ '))}</div>` : ''}
         ${bean.flavorNotes ? `<div class="bean-card-expand-notes">${escapeHtml(bean.flavorNotes)}</div>` : ''}
         ${(!tasteRadar && !expandRowParts.length && !bean.flavorNotes) ? '<div class="bean-card-expand-row" style="color:var(--text-muted)">詳細情報はまだありません</div>' : ''}
+        ${beanTimelineHtml(bean.id)}
       </div>` : ''}
     </div>`;
 }
@@ -589,6 +589,7 @@ function renderBeansList() {
   const container = document.getElementById('beans-list');
   container.innerHTML = list.map(beanCardHtml).join('');
   wireLongPress(container.querySelectorAll('.bean-card'), (el) => openBeanActions(el.dataset.beanId));
+  wireLongPress(container.querySelectorAll('.timeline-row'), (el) => openEntryActions(el.dataset.entryId));
 }
 
 function escapeHtml(s) {
@@ -598,7 +599,7 @@ function escapeHtml(s) {
 function handleBeanCardTap(beanId, event) {
   const el = event.currentTarget;
   if (el.dataset.longpressFired) { delete el.dataset.longpressFired; return; }
-  openBeanDetail(beanId);
+  toggleBeanCardExpand(beanId, event);
 }
 
 let _actionBeanId = null;
@@ -616,14 +617,6 @@ function editBeanFromSheet() {
   openAddForm(beanId);
 }
 
-/* ══════════════════════ 豆の詳細 ══════════════════════ */
-function openBeanDetail(beanId) {
-  _currentBeanId = beanId;
-  renderDetail(beanId);
-  showScreen('bean-detail');
-  updateNavActiveState(_lastMainTab);
-}
-
 function formatTime(d) {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
@@ -639,34 +632,9 @@ function formatDayLabel(d) {
   return `${d.getMonth() + 1}/${d.getDate()}(${weekday})`;
 }
 
-function renderDetail(beanId) {
-  const bean = beansCache.find((b) => b.id === beanId);
-  if (!bean) return;
-  const hero = document.getElementById('detail-hero');
-  hero.style.backgroundImage = bean.photo ? `url(${bean.photo})` : beanThumbStyle(bean).replace('background-image:', '');
-  hero.querySelectorAll('.hero-icon').forEach((n) => n.remove());
-  if (!bean.photo) {
-    const wrap = document.createElement('div');
-    wrap.className = 'hero-icon';
-    wrap.style.cssText = 'position:absolute;inset:0;display:grid;place-items:center;pointer-events:none';
-    wrap.innerHTML = beanIconSvg(72);
-    hero.appendChild(wrap);
-  }
-
-  document.getElementById('detail-name').textContent = bean.name;
-  const meta = [bean.origin, bean.roast, bean.process, bean.shop].filter(Boolean).join(' ・ ');
-  document.getElementById('detail-meta').textContent = meta;
-  document.getElementById('detail-rating').innerHTML =
-    `${starsHtml(bean.rating, 18).split('</svg>')[0]}</svg> ${(bean.rating || 0).toFixed(1)}`;
-
-  const tasteRadar = tasteRadarSvg(bean.taste, 180);
-  document.getElementById('detail-taste').innerHTML = tasteRadar;
-
+function beanTimelineHtml(beanId) {
   const entries = entriesCache.filter((e) => e.beanId === beanId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  document.getElementById('detail-entries-sub').textContent =
-    (bean.purchaseDate ? `購入 ${bean.purchaseDate.slice(5).replace('-', '/')} ・ ` : '') + `${entries.length} 件`;
-
-  document.getElementById('detail-timeline').innerHTML = entries.map((entry, i) => {
+  const rows = entries.map((entry, i) => {
     const d = new Date(entry.createdAt);
     const timeLabel = `${formatDayLabel(d)} ${formatTime(d)}`;
     return `
@@ -681,7 +649,16 @@ function renderDetail(beanId) {
         </div>
       </div>`;
   }).join('');
-  wireLongPress(document.querySelectorAll('#detail-timeline .timeline-row'), (el) => openEntryActions(el.dataset.entryId));
+  return `
+    <div class="bean-card-expand-divider"></div>
+    <div class="detail-entries-heading">
+      <h2>この豆の日々</h2>
+      <span class="header-sub">${entries.length} 件</span>
+    </div>
+    <div class="timeline">
+      ${rows || '<div class="bean-card-expand-row" style="color:var(--text-muted)">まだ記録がありません</div>'}
+    </div>
+    <button class="bean-add-entry-btn" onclick="openQuickEntryForBean('${beanId}', event)">＋ ひとことを追加</button>`;
 }
 
 /* ══════════════════════ 日々タブ ══════════════════════ */
@@ -766,8 +743,13 @@ function selectDaysBean(beanId) {
 let _quickEntryContext = 'days';
 
 function openQuickEntrySheetFromFab() {
-  const context = document.getElementById('screen-bean-detail').classList.contains('visible') ? 'detail' : 'days';
-  openQuickEntrySheet(context);
+  openQuickEntrySheet('days');
+}
+
+function openQuickEntryForBean(beanId, event) {
+  if (event) event.stopPropagation();
+  _quickEntryBeanId = beanId;
+  openQuickEntrySheet('bean');
 }
 
 function openQuickEntrySheet(context) {
@@ -778,7 +760,7 @@ function openQuickEntrySheet(context) {
     _daysQuickPhoto = null;
     updateQuickEntryBeanLabel();
   } else {
-    _detailQuickPhoto = null;
+    _beanQuickPhoto = null;
   }
   document.getElementById('quick-entry-overlay').classList.add('visible');
   document.getElementById('quick-entry-fab-layer').style.display = 'none';
@@ -786,16 +768,16 @@ function openQuickEntrySheet(context) {
 function closeQuickEntrySheet() {
   document.getElementById('quick-entry-overlay').classList.remove('visible');
   const onDays = document.getElementById('screen-days').classList.contains('visible');
-  const onDetail = document.getElementById('screen-bean-detail').classList.contains('visible');
-  document.getElementById('quick-entry-fab-layer').style.display = (onDays || onDetail) ? 'block' : 'none';
+  const onBeans = document.getElementById('screen-beans').classList.contains('visible');
+  document.getElementById('quick-entry-fab-layer').style.display = (onDays || onBeans) ? 'block' : 'none';
 }
 
 /* ══════════════════════ ひとこと(Entry)の追加・編集・削除 ══════════════════════ */
 async function submitQuickEntry(context) {
-  const beanId = context === 'days' ? _daysSelectedBeanId : _currentBeanId;
+  const beanId = context === 'days' ? _daysSelectedBeanId : _quickEntryBeanId;
   const textInput = document.getElementById('quick-entry-text');
   const text = textInput.value.trim();
-  const photo = context === 'days' ? _daysQuickPhoto : _detailQuickPhoto;
+  const photo = context === 'days' ? _daysQuickPhoto : _beanQuickPhoto;
 
   if (!beanId) { showToast('先に豆を登録・選択してください'); return; }
   if (!text && !photo) { showToast('ひとこと、または写真を入れてください'); return; }
@@ -805,12 +787,12 @@ async function submitQuickEntry(context) {
   entriesCache.push(entry);
 
   textInput.value = '';
-  if (context === 'days') _daysQuickPhoto = null; else _detailQuickPhoto = null;
+  if (context === 'days') _daysQuickPhoto = null; else _beanQuickPhoto = null;
   settings.lastUsedBeanId = beanId;
   saveSettings();
 
   closeQuickEntrySheet();
-  if (context === 'days') renderDaysList(); else renderDetail(_currentBeanId);
+  if (context === 'days') renderDaysList(); else renderBeansList();
   showToast('記録しました');
 }
 
@@ -851,7 +833,7 @@ function startEditEntry() {
     entry.text = newText;
     await dbPut('entries', entry);
     cleanup();
-    if (document.getElementById('screen-bean-detail').classList.contains('visible')) renderDetail(_currentBeanId);
+    renderBeansList();
     renderDaysList();
     showToast('更新しました');
   }
@@ -871,7 +853,7 @@ function confirmDeleteEntryFromSheet() {
 async function deleteEntry(entryId) {
   await dbDelete('entries', entryId);
   entriesCache = entriesCache.filter((e) => e.id !== entryId);
-  if (document.getElementById('screen-bean-detail').classList.contains('visible')) renderDetail(_currentBeanId);
+  renderBeansList();
   renderDaysList();
   showToast('削除しました');
 }
@@ -879,7 +861,7 @@ async function deleteEntry(entryId) {
 function wireLongPress(nodeList, callback, ms = 550) {
   nodeList.forEach((el) => {
     let timer = null;
-    const start = () => { timer = setTimeout(() => { el.dataset.longpressFired = '1'; callback(el); }, ms); };
+    const start = (e) => { e.stopPropagation(); timer = setTimeout(() => { el.dataset.longpressFired = '1'; callback(el); }, ms); };
     const cancel = () => clearTimeout(timer);
     el.addEventListener('touchstart', start, { passive: true });
     el.addEventListener('touchend', cancel);
@@ -941,7 +923,6 @@ function renderAddRating() {
 
 function openAddForm(beanId) {
   _editingBeanId = beanId || null;
-  _addReturnTarget = beanId ? { type: 'detail', beanId } : { type: 'list' };
   _pendingPhotoDataUrl = null;
   _identifyApplied = false;
   _addRoast = null; _addProcess = null; _addRating = 0;
@@ -996,11 +977,7 @@ function renderAiMetaBox() {
 }
 
 function closeAddForm() {
-  if (_addReturnTarget.type === 'detail') {
-    openBeanDetail(_addReturnTarget.beanId);
-  } else {
-    switchNav(_lastMainTab);
-  }
+  switchNav('beans');
 }
 
 async function runIdentify() {
@@ -1083,7 +1060,8 @@ async function saveBean() {
   if (idx >= 0) beansCache[idx] = bean; else beansCache.push(bean);
 
   showToast('保存しました');
-  openBeanDetail(bean.id);
+  _expandedBeanIds.add(bean.id);
+  switchNav('beans');
 }
 
 async function confirmDeleteBean(beanId) {
