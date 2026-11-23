@@ -574,14 +574,8 @@ function beanCardHtml(bean) {
 }
 
 function renderBeansList() {
-  const search = (document.getElementById('bean-search').value || '').trim().toLowerCase();
   let list = beansCache.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   if (roastFilter !== 'all') list = list.filter((b) => b.roast === roastFilter);
-  if (search) {
-    list = list.filter((b) =>
-      [b.name, b.origin, b.shop].some((v) => (v || '').toLowerCase().includes(search))
-    );
-  }
   document.getElementById('beans-count').textContent = `${beansCache.length} 種類の豆`;
   document.getElementById('beans-empty').style.display = beansCache.length === 0 ? 'block' : 'none';
 

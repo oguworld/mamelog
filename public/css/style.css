@@ -117,19 +117,7 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 }
 .icon-btn.on-photo { background: rgba(255,255,255,0.9); border-radius: 50%; position: absolute; }
 
-/* ── 検索バー・フィルタチップ ── */
-.search-bar {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--warm-white); border-radius: var(--radius-btn);
-  padding: 0 14px; height: 44px; margin: 0 20px 10px;
-}
-.search-bar input {
-  border: 0; outline: none; background: none; flex: 1;
-  /* 16px未満だとiOS Safariがフォーカス時に自動ズームする(CLAUDE.md規約) */
-  font-size: 16px; color: var(--espresso);
-}
-.search-bar input::placeholder { color: var(--text-muted); }
-
+/* ── フィルタチップ ── */
 .chip-row { display: flex; gap: 8px; margin: 0 20px 14px; overflow-x: auto; }
 .chip {
   background: var(--sand); color: var(--espresso);
