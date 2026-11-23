@@ -56,7 +56,7 @@ html, body {
   -webkit-text-size-adjust: 100%;
 }
 
-body { overscroll-behavior-y: none; }
+body { overscroll-behavior-y: none; overflow-x: hidden; }
 
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; }
@@ -70,7 +70,6 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
   max-width: 480px;
   margin: 0 auto;
   min-height: 100vh;
-  overflow-x: hidden;
   /* 長押し(ひとことの編集/削除シート等)がiOSのテキスト選択・コールアウトメニューと
      競合しないよう、アプリ全体では無効化する。入力欄だけは下で選択可に戻す。 */
   -webkit-user-select: none;
@@ -97,8 +96,10 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
   gap: 12px;
 }
 
-/* ── ヘッダー共通 ── */
+/* ── ヘッダー共通(豆・日々等が増えてもタイトルが常に見えるよう画面上部に固定) ── */
 .screen-header {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--cream);
   padding: 56px 20px 12px;
   display: flex;
   align-items: baseline;
