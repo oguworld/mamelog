@@ -201,7 +201,7 @@ function renderSettingsScreen() {
 }
 
 /* ══════════════════════ 画面遷移 ══════════════════════ */
-const ALL_SCREENS = ['beans', 'days', 'bean-detail', 'add', 'settings'];
+const ALL_SCREENS = ['beans', 'days', 'wiki', 'wiki-category', 'bean-detail', 'add', 'settings'];
 
 const FAB_ICON_ADD = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
 const FAB_ICON_PENCIL = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
@@ -234,18 +234,76 @@ function showScreen(name) {
 function updateNavActiveState(highlight) {
   document.getElementById('nav-beans').classList.toggle('active', highlight === 'beans');
   document.getElementById('nav-days').classList.toggle('active', highlight === 'days');
+  document.getElementById('nav-wiki').classList.toggle('active', highlight === 'wiki');
 }
 
 function switchNav(screen) {
-  if (screen === 'beans' || screen === 'days') {
+  if (screen === 'beans' || screen === 'days' || screen === 'wiki') {
     _lastMainTab = screen;
     showScreen(screen);
     updateNavActiveState(screen);
     if (screen === 'beans') renderBeansList();
     if (screen === 'days') renderDaysList();
+    if (screen === 'wiki') renderWikiGrid();
   } else {
     showScreen(screen);
   }
+}
+
+/* ══════════════════════ 豆知識(ウィキ) ══════════════════════ */
+let _wikiCategoryId = null;
+let _expandedWikiIds = new Set();
+
+const WIKI_CATEGORY_ICONS = {
+  roast: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 17c1.4 0 2-1.5 1.3-2.7-.5-.9-.2-1.8.4-2.3 1 1 1.3 2.5 1.3 2.5 1.5-1.5 2-4-.5-6 .3 1.5-.5 2-1 1.5-.4-2-2-3-2-3 .2 1.5-.8 3.2-1.6 4.2-.8 1-1.4 2-1.4 3.3z"/></svg>',
+  process: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5s6 6.2 6 11a6 6 0 0 1-12 0c0-4.8 6-11 6-11z"/></svg>',
+  origin: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
+  brew: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5zM17 10h1.5a2.5 2.5 0 0 1 0 5H17M7 2v2M10 2v2M13 2v2"/></svg>',
+  glossary: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5v-17z"/><path d="M4 17h16"/></svg>',
+};
+
+function renderWikiGrid() {
+  const grid = document.getElementById('wiki-grid');
+  grid.innerHTML = WIKI_CATEGORIES.map((cat) => `
+    <button class="wiki-tile" onclick="if(!_touchGuard()) openWikiCategory('${cat.id}')">
+      <div class="icon">${WIKI_CATEGORY_ICONS[cat.id] || ''}</div>
+      <div class="label">${cat.label}</div>
+      <div class="count">${cat.items.length}件</div>
+    </button>
+  `).join('');
+}
+
+function openWikiCategory(categoryId) {
+  _wikiCategoryId = categoryId;
+  _expandedWikiIds.clear();
+  const cat = WIKI_CATEGORIES.find((c) => c.id === categoryId);
+  document.getElementById('wiki-category-title').textContent = cat ? cat.label : '';
+  showScreen('wiki-category');
+  renderWikiCategoryList();
+}
+
+function renderWikiCategoryList() {
+  const cat = WIKI_CATEGORIES.find((c) => c.id === _wikiCategoryId);
+  const list = document.getElementById('wiki-category-list');
+  if (!cat) { list.innerHTML = ''; return; }
+  list.innerHTML = cat.items.map((item) => {
+    const open = _expandedWikiIds.has(item.id);
+    return `
+      <button class="wiki-card" onclick="toggleWikiItemExpand('${item.id}')">
+        <div class="wiki-card-top">
+          <div class="wiki-card-title">${item.title}</div>
+          <svg class="chevron${open ? ' open' : ''}" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        ${open ? `<div class="wiki-card-body">${item.body}</div>` : ''}
+      </button>
+    `;
+  }).join('');
+}
+
+function toggleWikiItemExpand(itemId) {
+  if (_expandedWikiIds.has(itemId)) _expandedWikiIds.delete(itemId);
+  else _expandedWikiIds.add(itemId);
+  renderWikiCategoryList();
 }
 
 function openSettings() {

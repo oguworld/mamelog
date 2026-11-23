@@ -58,6 +58,33 @@
     </div>
   </section>
 
+  <!-- ══════════════════════ 豆知識(トップ: カテゴリタイル) ══════════════════════ -->
+  <section class="screen" id="screen-wiki">
+    <div class="screen-header">
+      <div>
+        <h1>豆知識</h1>
+        <div class="header-sub">コーヒーの基本をさくっと確認</div>
+      </div>
+      <button class="icon-btn" aria-label="設定" onclick="if(!_touchGuard()) openSettings()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+    <div class="screen-scroll-content">
+      <div class="wiki-grid" id="wiki-grid"></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ 豆知識(カテゴリ内: アコーディオン一覧) ══════════════════════ -->
+  <section class="screen" id="screen-wiki-category">
+    <div class="screen-header" style="padding:52px 12px 10px;align-items:center;gap:4px">
+      <button class="icon-btn" aria-label="戻る" style="width:44px;height:44px" onclick="if(!_touchGuard()) switchNav('wiki')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h1 id="wiki-category-title"></h1>
+    </div>
+    <div class="screen-scroll-content" id="wiki-category-list"></div>
+  </section>
+
   <!-- ══════════════════════ 豆の詳細 ══════════════════════ -->
   <section class="screen" id="screen-bean-detail">
     <div class="detail-hero" id="detail-hero">
@@ -241,6 +268,10 @@
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h11a2 2 0 0 1 2 2v15H8a2 2 0 0 1-2-2zM6 18a2 2 0 0 1 2-2h11M10 8h5"/></svg>
       <span class="nav-label">日々</span>
     </button>
+    <button class="nav-item" id="nav-wiki" onclick="if(!_touchGuard()) switchNav('wiki')">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>
+      <span class="nav-label">豆知識</span>
+    </button>
   </nav>
 
   <!-- メインFAB(画面に応じてアイコン・動作をJSで切り替える: 豆=追加、日々/詳細=今日の一言) -->
@@ -319,6 +350,7 @@
 
   <div class="toast" id="toast"></div>
 </div>
+<script src="js/wiki-data.js?v=1"></script>
 <script src="js/app.js?v=1"></script>
 </body>
 </html>
