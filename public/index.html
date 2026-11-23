@@ -264,18 +264,20 @@
   <!-- 「今日の一言」入力シート(FABから開く。日々タブ/豆の詳細で共用) -->
   <div class="overlay" id="quick-entry-overlay" onclick="if(event.target===this) closeQuickEntrySheet()">
     <div class="confirm-dialog wide">
-      <div class="quick-input-bar" style="box-shadow:none">
+      <div class="quick-entry-body">
         <button class="bean-chip-select" id="quick-entry-bean-select" onclick="if(!_touchGuard()) openBeanPicker('days')">
           <span class="label" id="quick-entry-bean-label">豆を選ぶ</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7A6455" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </button>
-        <input type="text" id="quick-entry-text" placeholder="気づいたことをひとこと…">
-        <button class="round-btn ghost" aria-label="写真を添える" onclick="if(!_touchGuard()) pickPhoto(_quickEntryContext)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-        </button>
-        <button class="round-btn primary" aria-label="記録する" onclick="if(!_touchGuard()) submitQuickEntry(_quickEntryContext)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l14-7-5 14-2-6z"/></svg>
-        </button>
+        <div class="quick-input-bar" style="box-shadow:none">
+          <input type="text" id="quick-entry-text" placeholder="気づいたことをひとこと…">
+          <button class="round-btn ghost" aria-label="写真を添える" onclick="if(!_touchGuard()) pickPhoto(_quickEntryContext)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+          </button>
+          <button class="round-btn primary" aria-label="記録する" onclick="if(!_touchGuard()) submitQuickEntry(_quickEntryContext)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l14-7-5 14-2-6z"/></svg>
+          </button>
+        </div>
       </div>
     </div>
   </div>
