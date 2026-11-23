@@ -200,32 +200,41 @@ function renderSettingsScreen() {
 /* ══════════════════════ 画面遷移 ══════════════════════ */
 const ALL_SCREENS = ['beans', 'days', 'wiki', 'wiki-category', 'add', 'settings'];
 
-const FAB_ICON_ADD = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
-const FAB_ICON_PENCIL = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
-
-// メインFABは画面によってアイコン・動作が変わる(豆一覧=豆を追加、日々/豆の詳細=今日の一言)。
-// 旧デザインはボトムナビ中央に固定の＋ボタンがあったが、豆一覧側のFABに統合した。
-function updateMainFab(screen) {
-  const btn = document.getElementById('main-fab');
-  if (screen === 'beans') {
-    btn.setAttribute('aria-label', '豆を追加');
-    btn.innerHTML = FAB_ICON_ADD;
-    btn.onclick = () => { if (!_touchGuard()) openAddForm(); };
-  } else {
-    btn.setAttribute('aria-label', '今日の一言を追加');
-    btn.innerHTML = FAB_ICON_PENCIL;
-    btn.onclick = () => { if (!_touchGuard()) openQuickEntrySheetFromFab(); };
-  }
+// メインFABはどの主要タブ(豆/日々/豆知識)からでも共通。タップすると「豆を追加」
+// 「ひとことを追加」を選べる小さなメニューがFABの真上に開く。
+let _fabMenuOpen = false;
+function toggleFabMenu() {
+  if (_fabMenuOpen) closeFabMenu(); else openFabMenu();
+}
+function openFabMenu() {
+  _fabMenuOpen = true;
+  document.getElementById('fab-menu').classList.add('open');
+  document.getElementById('main-fab').classList.add('menu-open');
+  document.getElementById('fab-menu-backdrop').style.display = 'block';
+}
+function closeFabMenu() {
+  _fabMenuOpen = false;
+  document.getElementById('fab-menu').classList.remove('open');
+  document.getElementById('main-fab').classList.remove('menu-open');
+  document.getElementById('fab-menu-backdrop').style.display = 'none';
+}
+function fabAddBean() {
+  closeFabMenu();
+  openAddForm();
+}
+function fabAddEntry() {
+  closeFabMenu();
+  openQuickEntrySheetFromFab();
 }
 
 function showScreen(name) {
+  closeFabMenu();
   ALL_SCREENS.forEach((s) => {
     document.getElementById('screen-' + s).classList.toggle('visible', s === name);
   });
   document.getElementById('bottom-nav').style.display = name === 'settings' ? 'none' : 'flex';
-  const showFab = name === 'beans' || name === 'days';
+  const showFab = name === 'beans' || name === 'days' || name === 'wiki';
   document.getElementById('quick-entry-fab-layer').style.display = showFab ? 'block' : 'none';
-  if (showFab) updateMainFab(name);
   adjustScreenPadding(name);
 }
 
@@ -781,9 +790,8 @@ function openQuickEntrySheetFromFab() {
 }
 function closeQuickEntrySheet() {
   document.getElementById('quick-entry-overlay').classList.remove('visible');
-  const onDays = document.getElementById('screen-days').classList.contains('visible');
-  const onBeans = document.getElementById('screen-beans').classList.contains('visible');
-  document.getElementById('quick-entry-fab-layer').style.display = (onDays || onBeans) ? 'block' : 'none';
+  const onMainTab = ['beans', 'days', 'wiki'].some((s) => document.getElementById('screen-' + s).classList.contains('visible'));
+  document.getElementById('quick-entry-fab-layer').style.display = onMainTab ? 'block' : 'none';
 }
 
 /* ══════════════════════ ひとこと(Entry)の追加・編集・削除 ══════════════════════ */

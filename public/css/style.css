@@ -282,6 +282,29 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
   display: grid; place-items: center; cursor: pointer;
   box-shadow: var(--shadow-fab); pointer-events: auto;
 }
+.quick-entry-fab svg { transition: transform 0.15s ease; }
+.quick-entry-fab.menu-open svg { transform: rotate(45deg); }
+
+.fab-menu-backdrop { display: none; position: fixed; inset: 0; z-index: 3999; }
+
+.fab-menu {
+  position: absolute; right: 20px; bottom: 86px;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+  opacity: 0; transform: translateY(8px); pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.fab-menu.open { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.fab-menu-item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--warm-white); color: var(--espresso); border: 0; border-radius: var(--radius-chip);
+  padding: 8px 18px 8px 8px; font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer;
+  box-shadow: var(--shadow-float); white-space: nowrap;
+}
+.fab-menu-icon {
+  width: 32px; height: 32px; border-radius: 50%; flex: none;
+  background: var(--caramel-pale); color: var(--caramel);
+  display: grid; place-items: center;
+}
 
 /* ── 豆の追加/編集フォーム ── */
 .add-header {
