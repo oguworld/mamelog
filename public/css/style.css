@@ -96,9 +96,14 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
   gap: 12px;
 }
 
-/* ── ヘッダー共通(豆・日々等が増えてもタイトルが常に見えるよう画面上部に固定) ── */
+/* ── ヘッダー共通(豆・日々等が増えてもタイトルが常に見えるよう画面上部に固定) ──
+   position:stickyはiOS Safariのバウンス(ラバーバンド)スクロール中にヘッダーが
+   一緒にずれてしまうため、position:fixedで完全に固定する(.fab-layerと同じ中央
+   寄せパターン)。fixedで通常フローから外れる分は、JS側(adjustScreenPadding)で
+   実際のヘッダー高さを測って.screenのpadding-topに反映している。 */
 .screen-header {
-  position: sticky; top: 0; z-index: 10;
+  position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+  width: min(480px, 100%); z-index: 10;
   background: var(--cream);
   /* ノッチ/ステータスバー分はenv()で確保し、通常のSafariタブ表示では無駄な余白を作らない */
   padding: calc(14px + env(safe-area-inset-top, 0px)) 20px 12px;

@@ -226,6 +226,17 @@ function showScreen(name) {
   const showFab = name === 'beans' || name === 'days';
   document.getElementById('quick-entry-fab-layer').style.display = showFab ? 'block' : 'none';
   if (showFab) updateMainFab(name);
+  adjustScreenPadding(name);
+}
+
+// ヘッダーはposition:fixedで画面上部に固定しているため通常フローから外れる。
+// その分だけ.screenのpadding-topを実測値で補う(ヘッダーの高さは画面ごと・
+// 端末のノッチ有無で変わるため固定値では合わない)。
+function adjustScreenPadding(name) {
+  const screenEl = document.getElementById('screen-' + name);
+  const headerEl = screenEl.querySelector('.screen-header');
+  if (!headerEl) return;
+  screenEl.style.paddingTop = headerEl.offsetHeight + 'px';
 }
 
 function updateNavActiveState(highlight) {
@@ -1169,6 +1180,10 @@ async function init() {
   [beansCache, entriesCache] = await Promise.all([dbGetAll('beans'), dbGetAll('entries')]);
   renderRoastFilterChips();
   switchNav(settings.startupScreen === 'days' ? 'days' : 'beans');
+  window.addEventListener('resize', () => {
+    const current = ALL_SCREENS.find((s) => document.getElementById('screen-' + s).classList.contains('visible'));
+    if (current) adjustScreenPadding(current);
+  });
 }
 
 init();
