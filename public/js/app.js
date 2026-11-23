@@ -349,6 +349,51 @@ function applyPickedPhoto(target, dataUrl) {
   }
 }
 
+/* ══════════════════════ 音声入力(Web Speech API) ══════════════════════
+ * SafariはこのAPIに未対応(iOSのWKWebView/Capacitorアプリも同様)。その場合は
+ * 対応していない旨をトーストで伝えるだけにとどめ、他の機能には影響させない。
+ * ネイティブアプリで確実に使えるようにするには、別途ネイティブの音声認識
+ * プラグイン(例: @capacitor-community/speech-recognition)の導入が必要。 */
+let _voiceRecognition = null;
+let _voiceListening = false;
+
+function toggleVoiceInput() {
+  const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognitionCtor) {
+    showToast('この端末・ブラウザは音声入力に対応していません');
+    return;
+  }
+  if (_voiceListening) {
+    _voiceRecognition && _voiceRecognition.stop();
+    return;
+  }
+  const btn = document.getElementById('quick-entry-voice-btn');
+  const recognition = new SpeechRecognitionCtor();
+  recognition.lang = 'ja-JP';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  recognition.onstart = () => {
+    _voiceListening = true;
+    btn.classList.add('recording');
+  };
+  recognition.onresult = (e) => {
+    const transcript = e.results[0][0].transcript.trim();
+    if (!transcript) return;
+    const input = document.getElementById('quick-entry-text');
+    input.value = input.value ? `${input.value} ${transcript}` : transcript;
+  };
+  recognition.onerror = () => {
+    showToast('音声入力を認識できませんでした');
+  };
+  recognition.onend = () => {
+    _voiceListening = false;
+    btn.classList.remove('recording');
+    _voiceRecognition = null;
+  };
+  _voiceRecognition = recognition;
+  recognition.start();
+}
+
 // ネイティブアプリ(Capacitor)では@capacitor/camera(ios-app/package.jsonで導入済み)を使う。
 // バンドラーを使わない構成のため、ESモジュールimportではなくグローバルのCapacitor.Pluginsから
 // 取得する(姉妹アプリ共通の規約)。CameraSource.Promptは「カメラで撮る/フォトライブラリから選ぶ」の

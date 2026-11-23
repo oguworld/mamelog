@@ -178,6 +178,8 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 .round-btn.ghost { background: var(--cream); color: var(--espresso); }
 .round-btn.primary { background: var(--caramel); color: var(--warm-white); }
 .round-btn.primary:disabled { opacity: 0.4; cursor: default; }
+.round-btn.ghost.recording { background: var(--danger); color: var(--warm-white); animation: voice-pulse 1s ease-in-out infinite; }
+@keyframes voice-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
 
 .quick-entry-body { display: flex; flex-direction: column; gap: 10px; }
 .quick-entry-textfield {
