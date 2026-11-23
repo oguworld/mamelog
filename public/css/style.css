@@ -243,7 +243,6 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 }
 .detail-hero .icon-btn.on-photo { top: 52px; }
 .detail-hero .icon-btn.back { left: 16px; }
-.detail-hero .icon-btn.edit { right: 16px; }
 
 .detail-sheet {
   position: relative; margin-top: -30px; background: var(--cream);

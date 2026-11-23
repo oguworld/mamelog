@@ -545,7 +545,7 @@ function beanCardHtml(bean) {
   if (bean.brew) expandRowParts.push(bean.brew);
 
   return `
-    <div class="bean-card" role="button" onclick="openBeanDetail('${bean.id}')">
+    <div class="bean-card" role="button" data-bean-id="${bean.id}" onclick="handleBeanCardTap('${bean.id}', event)">
       <div class="bean-card-row">
         <div class="bean-thumb" style="${beanThumbStyle(bean)}">${bean.photo ? '' : beanIconSvg(36)}</div>
         <div class="bean-card-body">
@@ -588,10 +588,32 @@ function renderBeansList() {
 
   const container = document.getElementById('beans-list');
   container.innerHTML = list.map(beanCardHtml).join('');
+  wireLongPress(container.querySelectorAll('.bean-card'), (el) => openBeanActions(el.dataset.beanId));
 }
 
 function escapeHtml(s) {
   return String(s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function handleBeanCardTap(beanId, event) {
+  const el = event.currentTarget;
+  if (el.dataset.longpressFired) { delete el.dataset.longpressFired; return; }
+  openBeanDetail(beanId);
+}
+
+let _actionBeanId = null;
+
+function openBeanActions(beanId) {
+  _actionBeanId = beanId;
+  document.getElementById('bean-actions-overlay').classList.add('visible');
+}
+function closeBeanActions() {
+  document.getElementById('bean-actions-overlay').classList.remove('visible');
+}
+function editBeanFromSheet() {
+  const beanId = _actionBeanId;
+  closeBeanActions();
+  openAddForm(beanId);
 }
 
 /* ══════════════════════ 豆の詳細 ══════════════════════ */
@@ -857,7 +879,7 @@ async function deleteEntry(entryId) {
 function wireLongPress(nodeList, callback, ms = 550) {
   nodeList.forEach((el) => {
     let timer = null;
-    const start = () => { timer = setTimeout(() => callback(el), ms); };
+    const start = () => { timer = setTimeout(() => { el.dataset.longpressFired = '1'; callback(el); }, ms); };
     const cancel = () => clearTimeout(timer);
     el.addEventListener('touchstart', start, { passive: true });
     el.addEventListener('touchend', cancel);

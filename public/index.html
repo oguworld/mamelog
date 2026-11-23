@@ -91,9 +91,6 @@
       <button class="icon-btn on-photo back" aria-label="戻る" onclick="if(!_touchGuard()) switchNav(_lastMainTab)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
       </button>
-      <button class="icon-btn on-photo edit" aria-label="豆の情報を編集" onclick="if(!_touchGuard()) openAddForm(_currentBeanId)">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>
-      </button>
     </div>
     <div class="detail-sheet">
       <div class="detail-title-row">
@@ -326,6 +323,14 @@
   </div>
 
   <!-- ひとことの操作シート(長押しで表示) -->
+  <div class="overlay" id="bean-actions-overlay" onclick="if(event.target===this) closeBeanActions()">
+    <div class="confirm-dialog wide" style="padding:8px">
+      <button class="settings-row" onclick="editBeanFromSheet()"><span class="label">編集</span></button>
+      <div class="settings-divider"></div>
+      <button class="settings-row" onclick="closeBeanActions()"><span class="label" style="color:var(--text-muted)">キャンセル</span></button>
+    </div>
+  </div>
+
   <div class="overlay" id="entry-actions-overlay" onclick="if(event.target===this) closeEntryActions()">
     <div class="confirm-dialog wide" style="padding:8px">
       <button class="settings-row" onclick="startEditEntry()"><span class="label">編集</span></button>
