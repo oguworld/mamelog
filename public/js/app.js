@@ -619,9 +619,13 @@ function openQuickEntrySheet(context) {
     _detailQuickPhoto = null;
   }
   document.getElementById('quick-entry-overlay').classList.add('visible');
+  document.getElementById('quick-entry-fab-layer').style.display = 'none';
 }
 function closeQuickEntrySheet() {
   document.getElementById('quick-entry-overlay').classList.remove('visible');
+  const onDays = document.getElementById('screen-days').classList.contains('visible');
+  const onDetail = document.getElementById('screen-bean-detail').classList.contains('visible');
+  document.getElementById('quick-entry-fab-layer').style.display = (onDays || onDetail) ? 'block' : 'none';
 }
 
 /* ══════════════════════ ひとこと(Entry)の追加・編集・削除 ══════════════════════ */
