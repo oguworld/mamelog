@@ -643,7 +643,7 @@ function renderDaysList() {
         const bean = beansCache.find((b) => b.id === entry.beanId);
         const d = new Date(entry.createdAt);
         return `
-          <button class="entry-card" data-entry-id="${entry.id}" onclick="openBeanDetail('${entry.beanId}')">
+          <button class="entry-card" data-entry-id="${entry.id}">
             <div class="entry-card-body">
               <div class="entry-card-meta">${beanIconSvg(12)}${escapeHtml(bean ? bean.name : '削除済みの豆')} ・ ${formatTime(d)}</div>
               <div class="entry-card-text">${escapeHtml(entry.text || '')}</div>
