@@ -409,13 +409,17 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 }
 .overlay.visible { display: flex; }
 /* テキスト入力を伴うシートは画面上部に固定する(中央寄せだとキーボード表示時に
-   下部のボタンがキーボードの下に隠れてしまうため) */
+   下部のボタンがキーボードの下に隠れてしまうため)。今日の一言シートは★・淹れ方・
+   写真枠が増えて縦に長くなったため、上の余白は最小限にして縦スペースを確保する */
 #quick-entry-overlay, #entry-edit-overlay {
-  align-items: flex-start; padding-top: 80px;
+  align-items: flex-start; padding-top: 40px;
 }
 .confirm-dialog {
   background: var(--warm-white); border-radius: var(--radius-card); padding: 24px;
   width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 14px;
+  /* キーボード表示でビューポートが狭まっても画面全体が押し上げられないよう、
+     ダイアログ自身の中でスクロールさせる安全弁 */
+  max-height: calc(100vh - 80px); overflow-y: auto;
 }
 /* 入力系(今日の一言シート・豆選択・編集・アクションシート)は横幅を広く取る */
 .confirm-dialog.wide { max-width: calc(min(480px, 100%) - 32px); }
