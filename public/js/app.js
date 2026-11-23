@@ -203,18 +203,37 @@ function renderSettingsScreen() {
 /* ══════════════════════ 画面遷移 ══════════════════════ */
 const ALL_SCREENS = ['beans', 'days', 'bean-detail', 'add', 'settings'];
 
+const FAB_ICON_ADD = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+const FAB_ICON_PENCIL = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
+
+// メインFABは画面によってアイコン・動作が変わる(豆一覧=豆を追加、日々/豆の詳細=今日の一言)。
+// 旧デザインはボトムナビ中央に固定の＋ボタンがあったが、豆一覧側のFABに統合した。
+function updateMainFab(screen) {
+  const btn = document.getElementById('main-fab');
+  if (screen === 'beans') {
+    btn.setAttribute('aria-label', '豆を追加');
+    btn.innerHTML = FAB_ICON_ADD;
+    btn.onclick = () => { if (!_touchGuard()) openAddForm(); };
+  } else {
+    btn.setAttribute('aria-label', '今日の一言を追加');
+    btn.innerHTML = FAB_ICON_PENCIL;
+    btn.onclick = () => { if (!_touchGuard()) openQuickEntrySheetFromFab(); };
+  }
+}
+
 function showScreen(name) {
   ALL_SCREENS.forEach((s) => {
     document.getElementById('screen-' + s).classList.toggle('visible', s === name);
   });
   document.getElementById('bottom-nav').style.display = name === 'settings' ? 'none' : 'flex';
-  document.getElementById('quick-entry-fab-layer').style.display = (name === 'days' || name === 'bean-detail') ? 'block' : 'none';
+  const showFab = name === 'beans' || name === 'days' || name === 'bean-detail';
+  document.getElementById('quick-entry-fab-layer').style.display = showFab ? 'block' : 'none';
+  if (showFab) updateMainFab(name);
 }
 
 function updateNavActiveState(highlight) {
   document.getElementById('nav-beans').classList.toggle('active', highlight === 'beans');
   document.getElementById('nav-days').classList.toggle('active', highlight === 'days');
-  document.getElementById('nav-add').style.background = highlight === 'add' ? 'var(--espresso)' : 'var(--caramel)';
 }
 
 function switchNav(screen) {
@@ -404,6 +423,15 @@ function toggleBeanCardExpand(beanId, event) {
   renderBeansList();
 }
 
+async function toggleBeanInUse(beanId, event) {
+  event.stopPropagation();
+  const bean = beansCache.find((b) => b.id === beanId);
+  if (!bean) return;
+  bean.inUse = bean.inUse === false;
+  await dbPut('beans', bean);
+  renderBeansList();
+}
+
 function beanCardHtml(bean) {
   const meta = [bean.origin, bean.roast, bean.process].filter(Boolean).join(' ・ ');
   const expanded = _expandedBeanIds.has(bean.id);
@@ -427,6 +455,10 @@ function beanCardHtml(bean) {
         <div class="star-row">${starsHtml(bean.rating)}</div>
         ${expanded ? `
         <div class="bean-card-expand">
+          <div class="bean-card-expand-toggle">
+            <span class="label">今日の一言で選べる</span>
+            <button class="toggle-switch${bean.inUse !== false ? ' on' : ''}" onclick="toggleBeanInUse('${bean.id}', event)"><span class="knob"></span></button>
+          </div>
           ${tasteRadar ? `<div class="taste-radar-wrap">${tasteRadar}</div>` : ''}
           ${expandRowParts.length ? `<div class="bean-card-expand-row">${escapeHtml(expandRowParts.join(' ・ '))}</div>` : ''}
           ${bean.flavorNotes ? `<div class="bean-card-expand-notes">${escapeHtml(bean.flavorNotes)}</div>` : ''}
@@ -745,15 +777,7 @@ let _addTaste = { 酸味: 0, 苦味: 0, 甘味: 0, コク: 0, 香り: 0 };
 let _addRating = 0;
 let _addFlavorNotes = '';
 let _addSourceUrl = '';
-let _addInUse = true;
-
-function renderAddInUseToggle() {
-  document.getElementById('add-in-use-toggle').classList.toggle('on', _addInUse);
-}
-function toggleAddInUse() {
-  _addInUse = !_addInUse;
-  renderAddInUseToggle();
-}
+let _addInUse = true; // 新規作成時はtrue、編集時は既存値を保持(UIはbeanCardHtmlのトグルに統合済み)
 
 function renderAddRoastRow() {
   renderPillRow('add-roast-row', ROAST_VALUES, _addRoast, (v) => { _addRoast = v; renderAddRoastRow(); });
@@ -812,7 +836,6 @@ function openAddForm(beanId) {
     _pendingPhotoDataUrl = bean.photo || null;
     _addInUse = bean.inUse !== false;
   }
-  renderAddInUseToggle();
 
   const preview = document.getElementById('add-photo-preview');
   preview.querySelector('svg').style.display = _pendingPhotoDataUrl ? 'none' : 'block';

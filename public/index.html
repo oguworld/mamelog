@@ -141,11 +141,6 @@
         </div>
       </div>
 
-      <div class="field-toggle-row">
-        <span class="label">今日の一言で選べるようにする</span>
-        <button class="toggle-switch" id="add-in-use-toggle" onclick="if(!_touchGuard()) toggleAddInUse()"><span class="knob"></span></button>
-      </div>
-
       <div class="taste-card">
         <div class="taste-card-head"><span class="label">味の評価</span><span class="hint">あとで調整できます</span></div>
         <div id="add-taste-sliders"></div>
@@ -242,20 +237,15 @@
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>
       <span class="nav-label">豆</span>
     </button>
-    <button class="nav-fab" id="nav-add" aria-label="豆を追加" onclick="if(!_touchGuard()) openAddForm()">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-    </button>
     <button class="nav-item" id="nav-days" onclick="if(!_touchGuard()) switchNav('days')">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h11a2 2 0 0 1 2 2v15H8a2 2 0 0 1-2-2zM6 18a2 2 0 0 1 2-2h11M10 8h5"/></svg>
       <span class="nav-label">日々</span>
     </button>
   </nav>
 
-  <!-- 「今日の一言」用FAB(日々タブ・豆の詳細画面でのみ表示、JSで出し分け) -->
+  <!-- メインFAB(画面に応じてアイコン・動作をJSで切り替える: 豆=追加、日々/詳細=今日の一言) -->
   <div class="fab-layer" id="quick-entry-fab-layer">
-    <button class="quick-entry-fab" aria-label="今日の一言を追加" onclick="if(!_touchGuard()) openQuickEntrySheetFromFab()">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>
-    </button>
+    <button class="quick-entry-fab" id="main-fab" aria-label="追加"></button>
   </div>
 
   <input type="file" id="photo-input" accept="image/*" hidden>
@@ -269,8 +259,8 @@
           <span class="label" id="quick-entry-bean-label">豆を選ぶ</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7A6455" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </button>
-        <div class="quick-input-bar" style="box-shadow:none">
-          <input type="text" id="quick-entry-text" placeholder="気づいたことをひとこと…">
+        <input type="text" id="quick-entry-text" class="quick-entry-textfield" placeholder="気づいたことをひとこと…">
+        <div class="quick-entry-actions">
           <button class="round-btn ghost" aria-label="写真を添える" onclick="if(!_touchGuard()) pickPhoto(_quickEntryContext)">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
           </button>
