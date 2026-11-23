@@ -142,11 +142,6 @@
         <div id="add-taste-sliders"></div>
       </div>
 
-      <div class="field">
-        <label>総合評価</label>
-        <div class="rating-input" id="add-rating"></div>
-      </div>
-
       <div class="ai-meta-box" id="add-ai-meta" style="display:none"></div>
     </div>
   </section>
@@ -259,6 +254,8 @@
           <span class="label" id="quick-entry-bean-label">豆を選ぶ</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7A6455" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </button>
+        <div class="rating-input" id="quick-entry-rating"></div>
+        <input type="text" id="quick-entry-brew" class="entry-brew-input" placeholder="淹れ方(任意) 例: ハンドドリップ 92℃">
         <input type="text" id="quick-entry-text" class="quick-entry-textfield" placeholder="気づいたことをひとこと…">
         <div class="quick-entry-actions">
           <button class="round-btn ghost" id="quick-entry-voice-btn" aria-label="音声入力" onclick="if(!_touchGuard()) toggleVoiceInput()">
@@ -317,6 +314,8 @@
   <div class="overlay" id="entry-edit-overlay">
     <div class="confirm-dialog wide">
       <div class="message" style="font-weight:700">ひとことを編集</div>
+      <div class="rating-input" id="entry-edit-rating"></div>
+      <input type="text" id="entry-edit-brew" class="entry-brew-input" placeholder="淹れ方(任意)">
       <input type="text" id="entry-edit-text" style="background:var(--cream);border-radius:var(--radius-btn);border:0;padding:0 14px;height:46px;width:100%;color:var(--espresso)">
       <div class="actions">
         <button class="cancel" id="entry-edit-cancel-btn">キャンセル</button>

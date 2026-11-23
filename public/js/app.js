@@ -512,6 +512,13 @@ function starsHtml(rating, size = 15) {
   return html;
 }
 
+// 豆の★は手入力せず、ひとことごとの★評価(任意)の単純平均から出す
+function computeBeanRating(beanId) {
+  const rated = entriesCache.filter((e) => e.beanId === beanId && e.rating > 0);
+  if (!rated.length) return 0;
+  return rated.reduce((sum, e) => sum + e.rating, 0) / rated.length;
+}
+
 let _expandedBeanIds = new Set();
 
 function toggleBeanCardExpand(beanId, event) {
@@ -540,6 +547,7 @@ function beanCardHtml(bean) {
   const latestEntry = entriesCache
     .filter((e) => e.beanId === bean.id)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  const avgRating = computeBeanRating(bean.id);
 
   return `
     <div class="bean-card" role="button" data-bean-id="${bean.id}" onclick="handleBeanCardTap('${bean.id}', event)">
@@ -554,7 +562,7 @@ function beanCardHtml(bean) {
           </div>
           <div class="bean-card-meta">${escapeHtml(meta)}</div>
           <div class="bean-card-shop">${escapeHtml(bean.shop || '')}</div>
-          <div class="star-row">${starsHtml(bean.rating)}</div>
+          <div class="star-row">${starsHtml(avgRating)}${avgRating > 0 ? `<span class="rating-value">${avgRating.toFixed(1)}</span>` : ''}</div>
           ${(!expanded && latestEntry) ? `<div class="bean-card-latest-entry">${escapeHtml(latestEntry.text ? `"${latestEntry.text}"` : '(写真)')}</div>` : ''}
         </div>
       </div>
@@ -636,7 +644,9 @@ function beanTimelineHtml(beanId) {
         <div class="timeline-body">
           <div class="timeline-text">
             <div class="timeline-time">${timeLabel}</div>
+            ${entry.rating ? `<div class="timeline-rating">${starsHtml(entry.rating, 12)}</div>` : ''}
             <div class="timeline-entry-text">${escapeHtml(entry.text || '')}</div>
+            ${entry.brew ? `<div class="timeline-brew">${escapeHtml(entry.brew)}</div>` : ''}
           </div>
           ${entry.photo ? `<div class="timeline-thumb" style="background-image:url(${entry.photo})"></div>` : ''}
         </div>
@@ -698,7 +708,9 @@ function renderDaysList() {
           <button class="entry-card" data-entry-id="${entry.id}">
             <div class="entry-card-body">
               <div class="entry-card-meta">${beanIconSvg(12)}${escapeHtml(bean ? bean.name : '削除済みの豆')} ・ ${formatTime(d)}</div>
+              ${entry.rating ? `<div class="entry-card-rating">${starsHtml(entry.rating, 12)}</div>` : ''}
               <div class="entry-card-text">${escapeHtml(entry.text || '')}</div>
+              ${entry.brew ? `<div class="entry-card-brew">${escapeHtml(entry.brew)}</div>` : ''}
             </div>
             ${entry.photo ? `<div class="entry-thumb" style="background-image:url(${entry.photo})"></div>` : ''}
           </button>`;
@@ -732,9 +744,17 @@ function selectDaysBean(beanId) {
 }
 
 /* ══════════════════════ 「今日の一言」入力シート(FAB、日々タブのみ) ══════════════════════ */
+let _quickEntryRating = 0;
+function renderQuickEntryRating() {
+  renderStarInput('quick-entry-rating', _quickEntryRating, (v) => { _quickEntryRating = v; renderQuickEntryRating(); });
+}
+
 function openQuickEntrySheetFromFab() {
   document.getElementById('quick-entry-text').value = '';
+  document.getElementById('quick-entry-brew').value = '';
   _daysQuickPhoto = null;
+  _quickEntryRating = 0;
+  renderQuickEntryRating();
   updateQuickEntryBeanLabel();
   document.getElementById('quick-entry-overlay').classList.add('visible');
   document.getElementById('quick-entry-fab-layer').style.display = 'none';
@@ -752,21 +772,25 @@ async function submitQuickEntry() {
   const textInput = document.getElementById('quick-entry-text');
   const text = textInput.value.trim();
   const photo = _daysQuickPhoto;
+  const brew = document.getElementById('quick-entry-brew').value.trim();
 
   if (!beanId) { showToast('先に豆を登録・選択してください'); return; }
   if (!text && !photo) { showToast('ひとこと、または写真を入れてください'); return; }
 
-  const entry = { id: uuid(), beanId, text, photo: photo || null, createdAt: new Date().toISOString() };
+  const entry = { id: uuid(), beanId, text, photo: photo || null, rating: _quickEntryRating || 0, brew, createdAt: new Date().toISOString() };
   await dbPut('entries', entry);
   entriesCache.push(entry);
 
   textInput.value = '';
+  document.getElementById('quick-entry-brew').value = '';
   _daysQuickPhoto = null;
+  _quickEntryRating = 0;
   settings.lastUsedBeanId = beanId;
   saveSettings();
 
   closeQuickEntrySheet();
   renderDaysList();
+  renderBeansList();
   showToast('記録しました');
 }
 
@@ -788,9 +812,16 @@ function startEditEntry() {
 
   const overlay = document.getElementById('entry-edit-overlay');
   const input = document.getElementById('entry-edit-text');
+  const brewInput = document.getElementById('entry-edit-brew');
   const saveBtn = document.getElementById('entry-edit-save-btn');
   const cancelBtn = document.getElementById('entry-edit-cancel-btn');
   input.value = entry.text || '';
+  brewInput.value = entry.brew || '';
+  let editRating = entry.rating || 0;
+  function renderEditRating() {
+    renderStarInput('entry-edit-rating', editRating, (v) => { editRating = v; renderEditRating(); });
+  }
+  renderEditRating();
   overlay.classList.add('visible');
 
   function cleanup() {
@@ -805,6 +836,8 @@ function startEditEntry() {
       return;
     }
     entry.text = newText;
+    entry.rating = editRating || 0;
+    entry.brew = brewInput.value.trim();
     await dbPut('entries', entry);
     cleanup();
     renderBeansList();
@@ -860,7 +893,6 @@ function renderPillRow(containerId, options, selected, onSelect) {
 let _addRoast = null;
 let _addProcess = null;
 let _addTaste = { 酸味: 0, 苦味: 0, 甘味: 0, コク: 0, 香り: 0 };
-let _addRating = 0;
 let _addFlavorNotes = '';
 let _addSourceUrl = '';
 let _addInUse = true; // 新規作成時はtrue、編集時は既存値を保持(UIはbeanCardHtmlのトグルに統合済み)
@@ -883,15 +915,18 @@ function renderAddTasteSliders() {
     input.addEventListener('input', () => { _addTaste[input.dataset.key] = Number(input.value); });
   });
 }
-function renderAddRating() {
-  const wrap = document.getElementById('add-rating');
+
+// ★入力(今日の一言・ひとこと編集で共用)。総合評価は豆側では手入力せず、
+// ひとことごとの★の平均から算出する(computeBeanRating参照)。
+function renderStarInput(containerId, value, onChange) {
+  const wrap = document.getElementById(containerId);
   wrap.innerHTML = [1, 2, 3, 4, 5].map((i) => `
-    <button type="button" class="${i <= _addRating ? 'on' : ''}" data-i="${i}">
+    <button type="button" class="${i <= value ? 'on' : ''}" data-i="${i}">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2 6.3 20.3l1.2-6.4L2.8 9.5l6.4-.8z"/></svg>
     </button>
   `).join('');
   wrap.querySelectorAll('button').forEach((btn) => {
-    btn.addEventListener('click', () => { _addRating = Number(btn.dataset.i) === _addRating ? 0 : Number(btn.dataset.i); renderAddRating(); });
+    btn.addEventListener('click', () => { onChange(Number(btn.dataset.i) === value ? 0 : Number(btn.dataset.i)); });
   });
 }
 
@@ -899,7 +934,7 @@ function openAddForm(beanId) {
   _editingBeanId = beanId || null;
   _pendingPhotoDataUrl = null;
   _identifyApplied = false;
-  _addRoast = null; _addProcess = null; _addRating = 0;
+  _addRoast = null; _addProcess = null;
   _addTaste = { 酸味: 0, 苦味: 0, 甘味: 0, コク: 0, 香り: 0 };
   _addFlavorNotes = ''; _addSourceUrl = '';
   _addInUse = true;
@@ -914,7 +949,6 @@ function openAddForm(beanId) {
   if (bean) {
     _addRoast = bean.roast || null;
     _addProcess = bean.process || null;
-    _addRating = bean.rating || 0;
     _addTaste = { ...( _addTaste), ...(bean.taste || {}) };
     _addFlavorNotes = bean.flavorNotes || '';
     _addSourceUrl = bean.sourceUrl || '';
@@ -934,7 +968,6 @@ function openAddForm(beanId) {
   renderAddRoastRow();
   renderAddProcessRow();
   renderAddTasteSliders();
-  renderAddRating();
 
   showScreen('add');
   updateNavActiveState('add');
@@ -1021,7 +1054,6 @@ async function saveBean() {
     process: _addProcess,
     purchaseDate: document.getElementById('add-purchase-date').value || null,
     taste: { ..._addTaste },
-    rating: _addRating,
     brew: document.getElementById('add-brew').value.trim(),
     flavorNotes: _addFlavorNotes,
     sourceUrl: _addSourceUrl,
