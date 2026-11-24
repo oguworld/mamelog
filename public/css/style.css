@@ -536,9 +536,12 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 .overlay.visible { display: flex; }
 /* テキスト入力を伴うシートは画面上部に固定する(中央寄せだとキーボード表示時に
    下部のボタンがキーボードの下に隠れてしまうため)。今日の一言シートは★・淹れ方・
-   写真枠が増えて縦に長くなったため、上の余白は最小限にして縦スペースを確保する */
+   写真枠が増えて縦に長くなったため、上の余白は最小限にして縦スペースを確保する。
+   ネイティブアプリ(ノッチ/Dynamic Island)はSafariのアドレスバーと違いビューポートの
+   y=0が画面物理上端と一致するため、固定40pxだけではステータスバーに近すぎる。
+   .screen-headerと同じくenv(safe-area-inset-top)を加算して余白を確保する */
 #quick-entry-overlay, #entry-edit-overlay {
-  align-items: flex-start; padding-top: 40px;
+  align-items: flex-start; padding-top: calc(40px + env(safe-area-inset-top, 0px));
 }
 .confirm-dialog {
   background: var(--warm-white); border-radius: var(--radius-card); padding: 24px;
@@ -551,7 +554,10 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 /* 入力系(今日の一言シート・豆選択・編集・アクションシート)は横幅を広く取る */
 .confirm-dialog.wide { max-width: calc(min(480px, 100%) - 32px); }
 .confirm-dialog .message { font-size: 15px; line-height: 1.6; }
-.confirm-dialog .actions { display: flex; gap: 10px; justify-content: flex-end; }
+/* ボタン2つを等幅でダイアログ全幅に広げる(flex-endで右寄せにすると左側の余白が
+   目立ち「ボタンが右に偏って見える」ため、等幅にして視覚的な偏りをなくす) */
+.confirm-dialog .actions { display: flex; gap: 10px; }
+.confirm-dialog .actions button { flex: 1; }
 .confirm-dialog button { border: 0; border-radius: var(--radius-btn); padding: 10px 18px; font-size: 14px; cursor: pointer; font-family: inherit; }
 .confirm-dialog .cancel { background: var(--sand); color: var(--espresso); }
 .confirm-dialog .ok { background: var(--caramel); color: var(--warm-white); }
