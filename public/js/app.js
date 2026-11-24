@@ -764,7 +764,7 @@ async function toggleBeanInUse(beanId, event) {
 function beanCardHtml(bean) {
   const meta = [bean.origin, bean.roast, bean.process].filter(Boolean).join(' ・ ');
   const expanded = _expandedBeanIds.has(bean.id);
-  const tasteRadar = tasteRadarSvg(bean.taste, 110);
+  const tasteRadar = tasteRadarSvg(bean.taste, 170);
   const factRows = [];
   if (bean.origin) factRows.push(['産地', bean.origin]);
   if (bean.roast) factRows.push(['焙煎度', bean.roast]);
