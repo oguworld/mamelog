@@ -304,16 +304,15 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 .entry-thumbs { display: flex; gap: 6px; overflow-x: auto; margin-top: 2px; }
 .entry-thumb { width: 64px; height: 64px; border-radius: 12px; flex: none; background-size: cover; background-position: center; }
 
-/* ── 豆カード展開時: 味レーダー・この豆の日々タイムライン ── */
+/* ── 豆カード展開時: 味レーダー・この豆の日々タイムライン ──
+   基本情報(産地等)は長さがまちまちなため、レーダーより先(左)に置いて折り返しで
+   表示する。レーダーは固定サイズで右側、align-items:centerで短い方を中央に揃える。 */
 .taste-radar-row { display: flex; align-items: center; gap: 16px; padding: 4px 0; }
 .taste-radar-wrap { flex: none; }
-.taste-fact-list { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
-.fact-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 12.5px; }
-.fact-row .fact-k { color: var(--text-muted); flex: none; }
-.fact-row .fact-v {
-  color: var(--espresso); font-weight: 500; text-align: right;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
-}
+.taste-fact-list { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 9px; }
+.fact-row { display: flex; flex-direction: column; gap: 1px; font-size: 12.5px; }
+.fact-row .fact-k { color: var(--text-muted); }
+.fact-row .fact-v { color: var(--espresso); font-weight: 500; line-height: 1.4; word-break: break-word; }
 
 .bean-card-expand-divider { border-top: 1px solid var(--sand); margin: 2px 0; }
 

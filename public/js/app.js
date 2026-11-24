@@ -801,8 +801,8 @@ function beanCardHtml(bean) {
         </div>
         ${(tasteRadar || factRows.length) ? `
         <div class="taste-radar-row">
-          ${tasteRadar ? `<div class="taste-radar-wrap">${tasteRadar}</div>` : ''}
           ${factRows.length ? `<div class="taste-fact-list">${factRows.map(([k, v]) => `<div class="fact-row"><span class="fact-k">${k}</span><span class="fact-v">${escapeHtml(v)}</span></div>`).join('')}</div>` : ''}
+          ${tasteRadar ? `<div class="taste-radar-wrap">${tasteRadar}</div>` : ''}
         </div>` : ''}
         ${bean.flavorNotes ? `<div class="bean-card-expand-notes">${escapeHtml(bean.flavorNotes)}</div>` : ''}
         ${(!tasteRadar && !factRows.length && !bean.flavorNotes) ? '<div class="bean-card-expand-row" style="color:var(--text-muted)">詳細情報はまだありません</div>' : ''}
