@@ -691,6 +691,10 @@ async function pickPhoto(target) {
   _photoPickTarget = target;
   const Camera = window.Capacitor?.isNativePlatform?.() && window.Capacitor.Plugins?.Camera;
   if (!Camera) {
+    // ネイティブアプリなのにCameraプラグインが取得できない異常系を切り分けるための
+    // 診断トースト(「タップしても起動しない」report, 2026-11-24)。Web版では常にこの
+    // 分岐を通る(正常)ため_isCapacitorAppの時だけ表示する。
+    if (_isCapacitorApp) showToast('カメラ機能を初期化できませんでした');
     document.getElementById('photo-input').click();
     return;
   }
@@ -703,8 +707,12 @@ async function pickPhoto(target) {
     });
     const resized = await resizeDataUrl(photo.dataUrl);
     applyPickedPhoto(target, resized);
-  } catch (_) {
-    // ユーザーがキャンセルした場合もここに来る。何もしない。
+  } catch (err) {
+    // ユーザーがキャンセルした場合もここに来るため、キャンセル以外のみ表示する。
+    // 「タップしても起動しない」report (2026-11-24) の原因切り分け用。
+    if (err && err.message && !/cancel/i.test(err.message)) {
+      showToast('カメラを起動できませんでした: ' + err.message);
+    }
   }
 }
 
