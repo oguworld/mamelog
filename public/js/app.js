@@ -795,7 +795,7 @@ function beanCardHtml(bean) {
       ${expanded ? `
       <div class="bean-card-expand" onclick="event.stopPropagation()">
         <div class="bean-card-expand-toggle">
-          <span class="label">今日の一言で選べる</span>
+          <span class="label">今日のひとことで選べる</span>
           <button class="toggle-switch${bean.inUse !== false ? ' on' : ''}" onclick="toggleBeanInUse('${bean.id}', event)"><span class="knob"></span></button>
         </div>
         ${(tasteRadar || factRows.length) ? `
@@ -988,7 +988,7 @@ function openBeanPicker() {
         <div class="bean-card-body"><div class="bean-card-name" style="font-size:14px">${escapeHtml(bean.name)}</div></div>
       </div>
     </button>
-  `).join('') || '<div style="color:var(--text-muted);font-size:14px;text-align:center;padding:12px">使用中の豆がありません。豆の編集画面で「今日の一言で選べるようにする」をONにしてください。</div>';
+  `).join('') || '<div style="color:var(--text-muted);font-size:14px;text-align:center;padding:12px">使用中の豆がありません。豆の編集画面で「今日のひとことで選べるようにする」をONにしてください。</div>';
   overlay.classList.add('visible');
 }
 function closeBeanPicker() {
