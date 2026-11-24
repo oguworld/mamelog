@@ -199,7 +199,7 @@ function renderSettingsScreen() {
 }
 
 /* ══════════════════════ 画面遷移 ══════════════════════ */
-const ALL_SCREENS = ['beans', 'days', 'wiki', 'wiki-category', 'preference', 'add', 'settings'];
+const ALL_SCREENS = ['beans', 'days', 'wiki', 'preference', 'add', 'settings'];
 
 // メインFABはどの主要タブ(豆/日々/豆知識)からでも共通。タップすると「豆を追加」
 // 「ひとことを追加」を選べる小さなメニューがFABの真上に開く。
@@ -264,74 +264,70 @@ function switchNav(screen) {
     updateNavActiveState(screen);
     if (screen === 'beans') renderBeansList();
     if (screen === 'days') renderDaysList();
-    if (screen === 'wiki') renderWikiGrid();
+    if (screen === 'wiki') renderWikiAccordion();
     if (screen === 'preference') renderPreferenceScreen();
   } else {
     showScreen(screen);
   }
 }
 
-/* ══════════════════════ 豆知識(ウィキ) ══════════════════════ */
-let _wikiCategoryId = null;
+/* ══════════════════════ 豆知識(ウィキ、1ページ・2段アコーディオン) ══════════════════════ */
+let _expandedWikiCategoryIds = new Set();
 let _expandedWikiIds = new Set();
 
 const WIKI_CATEGORY_ICONS = {
-  roast: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 17c1.4 0 2-1.5 1.3-2.7-.5-.9-.2-1.8.4-2.3 1 1 1.3 2.5 1.3 2.5 1.5-1.5 2-4-.5-6 .3 1.5-.5 2-1 1.5-.4-2-2-3-2-3 .2 1.5-.8 3.2-1.6 4.2-.8 1-1.4 2-1.4 3.3z"/></svg>',
-  process: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5s6 6.2 6 11a6 6 0 0 1-12 0c0-4.8 6-11 6-11z"/></svg>',
   origin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
+  process: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5s6 6.2 6 11a6 6 0 0 1-12 0c0-4.8 6-11 6-11z"/></svg>',
+  roast: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 17c1.4 0 2-1.5 1.3-2.7-.5-.9-.2-1.8.4-2.3 1 1 1.3 2.5 1.3 2.5 1.5-1.5 2-4-.5-6 .3 1.5-.5 2-1 1.5-.4-2-2-3-2-3 .2 1.5-.8 3.2-1.6 4.2-.8 1-1.4 2-1.4 3.3z"/></svg>',
   brew: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h14v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5zM17 10h1.5a2.5 2.5 0 0 1 0 5H17M7 2v2M10 2v2M13 2v2"/></svg>',
-  glossary: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5v-17z"/><path d="M4 17h16"/></svg>',
   equipment: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16l-6.5 8.5V19l-3 1.5v-8z"/></svg>',
+  brand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+  glossary: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5v-17z"/><path d="M4 17h16"/></svg>',
 };
 
-function renderWikiGrid() {
-  const grid = document.getElementById('wiki-grid');
-  grid.innerHTML = WIKI_CATEGORIES.map((cat) => `
-    <button class="wiki-tile" onclick="if(!_touchGuard()) openWikiCategory('${cat.id}')">
-      <div class="icon">${WIKI_CATEGORY_ICONS[cat.id] || ''}</div>
-      <div class="label">${cat.label}</div>
-      <div class="count">${cat.items.length}件</div>
-    </button>
-  `).join('');
-}
-
-function openWikiCategory(categoryId) {
-  _wikiCategoryId = categoryId;
-  _expandedWikiIds.clear();
-  const cat = WIKI_CATEGORIES.find((c) => c.id === categoryId);
-  document.getElementById('wiki-category-title').textContent = cat ? cat.label : '';
-  showScreen('wiki-category');
-  renderWikiCategoryList();
-}
-
-function renderWikiCategoryList() {
-  const cat = WIKI_CATEGORIES.find((c) => c.id === _wikiCategoryId);
-  const list = document.getElementById('wiki-category-list');
-  if (!cat) { list.innerHTML = ''; return; }
-  let lastGroup = undefined;
-  list.innerHTML = cat.items.map((item) => {
-    const open = _expandedWikiIds.has(item.id);
-    const groupHeading = (item.group && item.group !== lastGroup)
-      ? `<div class="wiki-group-heading">${item.group}</div>`
-      : '';
-    lastGroup = item.group;
+function renderWikiAccordion() {
+  const container = document.getElementById('wiki-grid');
+  container.innerHTML = WIKI_CATEGORIES.map((cat) => {
+    const open = _expandedWikiCategoryIds.has(cat.id);
     return `
-      ${groupHeading}
-      <button class="wiki-card" onclick="toggleWikiItemExpand('${item.id}')">
-        <div class="wiki-card-top">
-          <div class="wiki-card-title">${item.title}</div>
+      <div class="wiki-cat-card">
+        <button class="wiki-cat-head" onclick="toggleWikiCategoryExpand('${cat.id}')">
+          <span class="icon">${WIKI_CATEGORY_ICONS[cat.id] || ''}</span>
+          <span class="label">${cat.label}</span>
+          <span class="count">${cat.items.length}件</span>
           <svg class="chevron${open ? ' open' : ''}" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-        </div>
-        ${open ? `<div class="wiki-card-body">${item.body}</div>` : ''}
-      </button>
+        </button>
+        ${open ? `<div class="wiki-item-list">${wikiItemRowsHtml(cat.items)}</div>` : ''}
+      </div>
     `;
   }).join('');
+}
+
+function wikiItemRowsHtml(items) {
+  return items.map((item) => {
+    const open = _expandedWikiIds.has(item.id);
+    return `
+      <div class="wiki-item-row">
+        <div class="wiki-item-top" onclick="toggleWikiItemExpand('${item.id}')">
+          <span class="wiki-item-title">${item.title}</span>
+          <svg class="chevron${open ? ' open' : ''}" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        ${open ? `<div class="wiki-item-body">${item.body}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleWikiCategoryExpand(categoryId) {
+  if (_expandedWikiCategoryIds.has(categoryId)) _expandedWikiCategoryIds.delete(categoryId);
+  else _expandedWikiCategoryIds.add(categoryId);
+  renderWikiAccordion();
 }
 
 function toggleWikiItemExpand(itemId) {
   if (_expandedWikiIds.has(itemId)) _expandedWikiIds.delete(itemId);
   else _expandedWikiIds.add(itemId);
-  renderWikiCategoryList();
+  renderWikiAccordion();
 }
 
 /* ══════════════════════ 好み(記録サマリー + AI傾向分析) ══════════════════════

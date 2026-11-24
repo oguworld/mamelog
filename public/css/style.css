@@ -125,7 +125,8 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 .icon-btn.on-photo { background: rgba(255,255,255,0.9); border-radius: 50%; position: absolute; }
 
 /* ── フィルタチップ ── */
-.chip-row { display: flex; gap: 8px; margin: 0 20px 14px; overflow-x: auto; }
+.chip-row { display: flex; gap: 8px; margin: 0 20px 14px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+.chip-row::-webkit-scrollbar { display: none; }
 .chip {
   background: var(--sand); color: var(--espresso);
   font-size: 13px; font-weight: 500; padding: 7px 14px;
@@ -176,37 +177,33 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 .empty-state .empty-title { font-size: 15px; font-weight: 700; color: var(--espresso); margin-bottom: 8px; }
 .empty-state .empty-desc { font-size: 14px; line-height: 1.7; }
 
-/* ── 豆知識: トップはカテゴリのタイルグリッド ── */
-.wiki-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 0 20px; }
-.wiki-tile {
-  background: var(--warm-white); border-radius: var(--radius-card); border: 0;
-  padding: 26px 16px 20px; display: flex; flex-direction: column; align-items: center; gap: 10px;
-  box-shadow: var(--shadow-card); cursor: pointer;
+/* ── 豆知識: 1ページ・2段アコーディオン(カテゴリ→項目) ── */
+.wiki-cat-card {
+  background: var(--warm-white); border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card); overflow: hidden;
 }
-.wiki-tile .icon {
-  width: 56px; height: 56px; color: var(--caramel);
+.wiki-cat-head {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 14px 16px; border: 0; background: none; cursor: pointer;
+  font-family: inherit; text-align: left;
+}
+.wiki-cat-head .icon {
+  width: 36px; height: 36px; color: var(--caramel); flex: none;
   display: grid; place-items: center;
 }
-.wiki-tile .icon svg { width: 44px; height: 44px; }
-.wiki-tile .label { font-size: 14px; font-weight: 700; color: var(--espresso); }
-.wiki-tile .count { font-size: 11.5px; color: var(--text-muted); }
+.wiki-cat-head .icon svg { width: 27px; height: 27px; }
+.wiki-cat-head .label { flex: 1; min-width: 0; font-size: 15px; font-weight: 700; color: var(--espresso); }
+.wiki-cat-head .count { font-size: 11.5px; color: var(--text-muted); }
 
-/* ── 豆知識: カテゴリ内はアコーディオン形式のカード一覧 ── */
-.wiki-card {
-  background: var(--warm-white); border-radius: var(--radius-card); border: 0; width: 100%;
-  padding: 16px; box-shadow: var(--shadow-card); cursor: pointer; text-align: left;
+.wiki-item-list { border-top: 1px solid var(--sand); padding: 2px 16px 8px; }
+.wiki-item-row { padding: 12px 2px; border-bottom: 1px solid var(--cream); }
+.wiki-item-row:last-child { border-bottom: 0; }
+.wiki-item-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; cursor: pointer; }
+.wiki-item-title { font-size: 14px; font-weight: 700; color: var(--espresso); }
+.wiki-item-body {
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--sand);
+  font-size: 13px; line-height: 1.7; color: var(--text-muted);
 }
-.wiki-card-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.wiki-card-title { font-size: 16px; font-weight: 700; color: var(--espresso); }
-.wiki-card-body {
-  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--sand);
-  font-size: 14px; line-height: 1.7; color: var(--text-muted); text-align: left;
-}
-.wiki-group-heading {
-  font-size: 12.5px; font-weight: 700; color: var(--text-muted);
-  padding-left: 4px; margin-top: 8px;
-}
-.wiki-group-heading:first-child { margin-top: 0; }
 
 /* ── 好み: 記録サマリー + AI傾向分析 ── */
 .preference-section-title {
@@ -301,7 +298,8 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 .entry-card-rating { display: flex; gap: 1px; }
 .entry-card-text { font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
 .entry-card-brew { font-size: 11.5px; color: var(--text-muted); }
-.entry-thumbs { display: flex; gap: 6px; overflow-x: auto; margin-top: 2px; }
+.entry-thumbs { display: flex; gap: 6px; overflow-x: auto; margin-top: 2px; scrollbar-width: none; -ms-overflow-style: none; }
+.entry-thumbs::-webkit-scrollbar { display: none; }
 .entry-thumb { width: 64px; height: 64px; border-radius: 12px; flex: none; background-size: cover; background-position: center; }
 
 /* ── 豆カード展開時: 味レーダー・この豆の日々タイムライン ──
@@ -331,7 +329,8 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 .timeline-rating { display: flex; gap: 1px; margin-top: 2px; }
 .timeline-entry-text { font-size: 14px; line-height: 1.6; margin-top: 2px; white-space: pre-wrap; word-break: break-word; }
 .timeline-brew { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
-.timeline-photos { display: flex; gap: 6px; overflow-x: auto; margin-top: 6px; }
+.timeline-photos { display: flex; gap: 6px; overflow-x: auto; margin-top: 6px; scrollbar-width: none; -ms-overflow-style: none; }
+.timeline-photos::-webkit-scrollbar { display: none; }
 .timeline-thumb { width: 64px; height: 64px; border-radius: 12px; flex: none; background-size: cover; background-position: center; }
 .timeline-more-btn {
   width: 100%; margin-top: 4px; padding: 10px; border: 0; border-radius: var(--radius-btn);
@@ -398,7 +397,8 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 }
 
 /* ── 今日の一言: 複数枚の写真を横並びで追加/削除 ── */
-.photo-row-multi { display: flex; gap: 8px; overflow-x: auto; }
+.photo-row-multi { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+.photo-row-multi::-webkit-scrollbar { display: none; }
 .photo-thumb-multi {
   position: relative; width: 72px; height: 72px; border-radius: 14px; flex: none;
   background-size: cover; background-position: center; background-color: var(--sand);
