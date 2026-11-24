@@ -930,6 +930,15 @@ function updateQuickEntryBeanLabel() {
   thumb.innerHTML = bean && bean.photo ? '' : beanIconSvg(24);
 }
 
+let _entryPhotoIndex = {};
+function advanceEntryPhoto(entryId, total, event) {
+  event.stopPropagation();
+  const card = event.currentTarget.closest('.entry-card');
+  if (card && card.dataset.longpressFired) { delete card.dataset.longpressFired; return; }
+  _entryPhotoIndex[entryId] = ((_entryPhotoIndex[entryId] || 0) + 1) % total;
+  renderDaysList();
+}
+
 function renderDaysList() {
   const entries = entriesCache.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   document.getElementById('days-empty').style.display = entries.length === 0 ? 'block' : 'none';
@@ -961,6 +970,7 @@ function renderDaysList() {
         const bean = beansCache.find((b) => b.id === entry.beanId);
         const d = new Date(entry.createdAt);
         const photos = entryPhotos(entry);
+        const activeIdx = photos.length ? (_entryPhotoIndex[entry.id] || 0) % photos.length : 0;
         return `
           <button class="entry-card" data-entry-id="${entry.id}">
             <div class="entry-card-body">
@@ -968,8 +978,12 @@ function renderDaysList() {
               ${entry.rating ? `<div class="entry-card-rating">${starsHtml(entry.rating, 12)}</div>` : ''}
               <div class="entry-card-text">${escapeHtml(entry.text || '')}</div>
               ${entry.brew ? `<div class="entry-card-brew">${escapeHtml(entry.brew)}</div>` : ''}
-              ${photos.length ? `<div class="entry-thumbs">${photos.map((p) => `<div class="entry-thumb" style="background-image:url(${p})"></div>`).join('')}</div>` : ''}
             </div>
+            ${photos.length ? `
+              <div class="entry-photo-carousel">
+                <div class="entry-photo-frame" style="background-image:url(${photos[activeIdx]})" onclick="advanceEntryPhoto('${entry.id}', ${photos.length}, event)"></div>
+                ${photos.length > 1 ? `<div class="entry-photo-dots">${photos.map((_, i) => `<span class="entry-photo-dot${i === activeIdx ? ' active' : ''}"></span>`).join('')}</div>` : ''}
+              </div>` : ''}
           </button>`;
       }).join('')}
     </div>
