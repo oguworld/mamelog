@@ -318,10 +318,12 @@
     </div>
   </div>
 
-  <!-- ひとことの操作シート(長押しで表示) -->
+  <!-- 豆の操作シート(長押しで表示) -->
   <div class="overlay" id="bean-actions-overlay" onclick="if(event.target===this) closeBeanActions()">
     <div class="confirm-dialog wide" style="padding:8px">
       <button class="settings-row" onclick="editBeanFromSheet()"><span class="label">編集</span></button>
+      <div class="settings-divider"></div>
+      <button class="settings-row danger" onclick="confirmDeleteBeanFromSheet()"><span class="label">削除</span></button>
       <div class="settings-divider"></div>
       <button class="settings-row" onclick="closeBeanActions()"><span class="label" style="color:var(--text-muted)">キャンセル</span></button>
     </div>

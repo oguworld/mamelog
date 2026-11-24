@@ -1,4 +1,4 @@
-const CACHE_NAME = 'beandiary-v62';
+const CACHE_NAME = 'beandiary-v63';
 const PRECACHE_URLS = [
   '/',
   '/css/style.css',

@@ -140,7 +140,12 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
   display: flex; flex-direction: column; background: var(--warm-white);
   border-radius: var(--radius-card); padding: 12px; box-shadow: var(--shadow-card);
   cursor: pointer; border: 0; width: 100%; text-align: left;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
 }
+/* 長押し後、並び替え開始前の「持ち上げ」フィードバック */
+.bean-card.drag-ready { transform: scale(1.02); box-shadow: 0 6px 16px rgba(59,36,24,0.18); }
+/* 並び替え中(ドラッグ中)のカード */
+.bean-card.dragging { transform: scale(1.03); box-shadow: 0 10px 24px rgba(59,36,24,0.24); opacity: 0.92; z-index: 10; position: relative; }
 .bean-card-row { display: flex; gap: 14px; }
 .bean-thumb {
   width: 88px; height: 88px; border-radius: 14px; flex: none;

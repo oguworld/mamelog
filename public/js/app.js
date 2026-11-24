@@ -834,16 +834,130 @@ function beanCardHtml(bean) {
     </div>`;
 }
 
+// 既存データ(orderフィールド無し)の一括移行。1件でも無ければ、従来の並び(新しい順)を
+// そのままorder値として確定させる(移行後は見た目が変わらないようにするため)。
+async function ensureBeanOrder() {
+  if (beansCache.length && beansCache.every((b) => typeof b.order === 'number')) return;
+  const sorted = beansCache.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  await Promise.all(sorted.map((bean, i) => {
+    bean.order = i;
+    return dbPut('beans', bean);
+  }));
+}
+
 function renderBeansList() {
-  let list = beansCache.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  let list = beansCache.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   if (roastFilter !== 'all') list = list.filter((b) => b.roast === roastFilter);
   document.getElementById('beans-count').textContent = `${beansCache.length} 種類の豆`;
   document.getElementById('beans-empty').style.display = beansCache.length === 0 ? 'block' : 'none';
 
   const container = document.getElementById('beans-list');
   container.innerHTML = list.map(beanCardHtml).join('');
-  wireLongPress(container.querySelectorAll('.bean-card'), (el) => openBeanActions(el.dataset.beanId));
+  wireBeanReorder(container);
   wireLongPress(container.querySelectorAll('.timeline-row'), (el) => openEntryActions(el.dataset.entryId));
+}
+
+/* 豆カードの長押しは、押し続けて550ms経過した時点で既存どおり操作シート(編集/削除)を
+   開く(wireLongPressと同じタイミング)。これはtouchend後に開くと、同じタッチから
+   合成されるclickイベントがその瞬間に表示されたオーバーレイの背景(バックドロップ)に
+   命中して即座に閉じてしまう不具合があったため(実機確認前にこのテストで発見)。
+   そのシートが開いた状態のまま指を動かした場合のみシートを閉じて並び替えに切り替える。
+   絞り込みチップ使用中(roastFilter!=='all')は表示順と保存順が一致しないため
+   並び替えを無効化し、長押しは操作シートのみ有効にする。 */
+function wireBeanReorder(container) {
+  const getCards = () => Array.from(container.querySelectorAll('.bean-card'));
+
+  getCards().forEach((el) => {
+    let timer = null;
+    let sheetOpen = false;
+    let dragging = false;
+    let startX = 0, startY = 0;
+
+    const clearTimer = () => { clearTimeout(timer); timer = null; };
+
+    const onDocMove = (e) => {
+      if (!sheetOpen && !dragging) return;
+      const t = e.touches ? e.touches[0] : e;
+      if (roastFilter !== 'all') return;
+      if (!dragging) {
+        if (Math.abs(t.clientY - startY) < 10) return;
+        dragging = true;
+        sheetOpen = false;
+        closeBeanActions();
+        el.classList.remove('drag-ready');
+        el.classList.add('dragging');
+      }
+      if (e.cancelable) e.preventDefault();
+      for (const sib of getCards()) {
+        if (sib === el) continue;
+        const rect = sib.getBoundingClientRect();
+        if (t.clientY > rect.top && t.clientY < rect.bottom) {
+          if (t.clientY < rect.top + rect.height / 2) sib.parentNode.insertBefore(el, sib);
+          else sib.parentNode.insertBefore(el, sib.nextSibling);
+          break;
+        }
+      }
+    };
+
+    const onDocEnd = () => {
+      clearTimer();
+      document.removeEventListener('touchmove', onDocMove);
+      document.removeEventListener('touchend', onDocEnd);
+      document.removeEventListener('touchcancel', onDocEnd);
+      document.removeEventListener('mousemove', onDocMove);
+      document.removeEventListener('mouseup', onDocEnd);
+      if (dragging) {
+        dragging = false;
+        el.classList.remove('dragging');
+        el.dataset.longpressFired = '1';
+        commitBeanOrder(container);
+      }
+      sheetOpen = false;
+    };
+
+    const begin = (x, y) => {
+      startX = x; startY = y;
+      timer = setTimeout(() => {
+        sheetOpen = true;
+        el.classList.add('drag-ready');
+        el.dataset.longpressFired = '1';
+        openBeanActions(el.dataset.beanId);
+      }, 550);
+    };
+
+    el.addEventListener('touchstart', (e) => {
+      e.stopPropagation();
+      const t = e.touches[0];
+      begin(t.clientX, t.clientY);
+      document.addEventListener('touchmove', onDocMove, { passive: false });
+      document.addEventListener('touchend', onDocEnd);
+      document.addEventListener('touchcancel', onDocEnd);
+    }, { passive: true });
+
+    el.addEventListener('touchmove', (e) => {
+      if (sheetOpen || dragging) return;
+      const t = e.touches[0];
+      if (Math.abs(t.clientY - startY) > 10 || Math.abs(t.clientX - startX) > 10) clearTimer();
+    }, { passive: true });
+
+    // デスクトップ確認用(マウス)。実機はタッチのみ使用。
+    el.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      begin(e.clientX, e.clientY);
+      document.addEventListener('mousemove', onDocMove);
+      document.addEventListener('mouseup', onDocEnd);
+    });
+  });
+}
+
+function commitBeanOrder(container) {
+  const ids = Array.from(container.querySelectorAll('.bean-card')).map((el) => el.dataset.beanId);
+  const changed = [];
+  ids.forEach((id, i) => {
+    const bean = beansCache.find((b) => b.id === id);
+    if (bean && bean.order !== i) { bean.order = i; changed.push(bean); }
+  });
+  Promise.all(changed.map((bean) => dbPut('beans', bean)));
 }
 
 function escapeHtml(s) {
@@ -1359,6 +1473,9 @@ async function saveBean() {
     sourceUrl: _addSourceUrl,
     inUse: _addInUse,
     createdAt: existing ? existing.createdAt : new Date().toISOString(),
+    // 新規作成時は既存の最小orderより小さい値にして一覧の先頭に出す(従来の「新しい順」の
+    // デフォルト挙動を踏襲)。編集時は既存のorderをそのまま引き継ぐ。
+    order: existing ? existing.order : Math.min(0, ...beansCache.map((b) => b.order ?? 0)) - 1,
   };
 
   await dbPut('beans', bean);
@@ -1370,16 +1487,21 @@ async function saveBean() {
   switchNav('beans');
 }
 
+async function confirmDeleteBeanFromSheet() {
+  const beanId = _actionBeanId;
+  closeBeanActions();
+  await confirmDeleteBean(beanId);
+}
+
+// 豆を削除しても、紐づく「ひとこと」の記録は残す(ユーザー方針)。
+// 記録側は豆が見つからない場合「削除済みの豆」と表示する(renderDaysList/beanTimelineHtml参照)。
 async function confirmDeleteBean(beanId) {
-  const count = entriesCache.filter((e) => e.beanId === beanId).length;
-  const ok = await showConfirm(`この豆を削除しますか?日々の記録も${count}件削除されます。`, { danger: true, okLabel: '削除' });
+  const ok = await showConfirm('この豆を削除しますか?紐づく日々の記録は削除されません。', { danger: true, okLabel: '削除' });
   if (!ok) return;
-  const toDelete = entriesCache.filter((e) => e.beanId === beanId).map((e) => e.id);
-  for (const id of toDelete) await dbDelete('entries', id);
   await dbDelete('beans', beanId);
-  entriesCache = entriesCache.filter((e) => e.beanId !== beanId);
   beansCache = beansCache.filter((b) => b.id !== beanId);
-  switchNav('beans');
+  renderBeansList();
+  renderDaysList();
   showToast('削除しました');
 }
 
@@ -1457,6 +1579,7 @@ async function init() {
   registerServiceWorker();
   _db = await openDB();
   [beansCache, entriesCache] = await Promise.all([dbGetAll('beans'), dbGetAll('entries')]);
+  await ensureBeanOrder();
   renderRoastFilterChips();
   switchNav(settings.startupScreen === 'days' ? 'days' : 'beans');
   window.addEventListener('resize', () => {
