@@ -1,5 +1,21 @@
 /* Bean Diary - フロントエンド本体(Vanilla JS、ビルドステップなし)
-   データはすべて端末内IndexedDB(DB名 beandiary)。サーバーは /api/identify の中継のみ。 */
+   データはすべて端末内IndexedDB(DB名 beandiary)。サーバーは /api/identify・/api/recommend の中継のみ。 */
+
+/* ══════════════════════════════════════════════
+ * APIベースURL(ネイティブアプリ/Capacitor対応)
+ * ネイティブアプリはCapacitorのwebDir設定で静的アセットをアプリバンドル内に
+ * ローカル同梱している(server.urlを指定していないため)。そのためWebViewの
+ * originは実サーバー(coffee.willoa.net)ではなくcapacitor://localhost相当の
+ * ローカルオリジンになり、fetch('/api/...')のような相対パスは実サーバーでは
+ * なくこのローカルオリジンに対して発行されてしまい、必ず失敗する
+ * (sg-bus-navi/public/js/app.jsの_isCapacitorApp/API_BASEと同じ、2026-09-16
+ * 実機で発見済みの既知バグパターン)。ネイティブアプリ内では本番オリジンを
+ * 明示的に絶対URLとして先頭に付与する。
+ * ══════════════════════════════════════════════ */
+const _isCapacitorApp = Boolean(
+  window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()
+);
+const API_BASE = _isCapacitorApp ? 'https://coffee.willoa.net' : '';
 
 /* ══════════════════════ タッチ対応ガード ══════════════════════
  * iOS WKWebView上でのタップ不具合(姉妹アプリで過去に発生)に備えたフック。
@@ -470,7 +486,7 @@ async function runPreferenceAnalysis() {
   renderPreferenceScreen();
 
   try {
-    const res = await fetch('/api/recommend', {
+    const res = await fetch(API_BASE + '/api/recommend', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ entries: rated }),
@@ -496,7 +512,7 @@ function openSettings() {
   showScreen('settings');
   renderSettingsScreen();
   document.getElementById('settings-version').textContent = '読み込み中…';
-  fetch('/api/version').then((r) => r.json()).then((d) => {
+  fetch(API_BASE + '/api/version').then((r) => r.json()).then((d) => {
     document.getElementById('settings-version').textContent = d.version || '-';
   }).catch(() => {
     document.getElementById('settings-version').textContent = '-';
@@ -1272,7 +1288,7 @@ async function runIdentify() {
   banner.innerHTML = `<div class="title-row">特定しています…</div><div class="desc">写真から豆の情報を読み取っています(20〜60秒程度)</div>`;
 
   try {
-    const res = await fetch('/api/identify', {
+    const res = await fetch(API_BASE + '/api/identify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: _pendingPhotoDataUrl }),
