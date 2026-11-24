@@ -737,8 +737,12 @@ let _expandedBeanIds = new Set();
 
 function toggleBeanCardExpand(beanId, event) {
   event.stopPropagation();
-  if (_expandedBeanIds.has(beanId)) _expandedBeanIds.delete(beanId);
-  else _expandedBeanIds.add(beanId);
+  if (_expandedBeanIds.has(beanId)) {
+    _expandedBeanIds.delete(beanId);
+    _expandedTimelineIds.delete(beanId);
+  } else {
+    _expandedBeanIds.add(beanId);
+  }
   renderBeansList();
 }
 
@@ -754,10 +758,13 @@ async function toggleBeanInUse(beanId, event) {
 function beanCardHtml(bean) {
   const meta = [bean.origin, bean.roast, bean.process].filter(Boolean).join(' ・ ');
   const expanded = _expandedBeanIds.has(bean.id);
-  const tasteRadar = tasteRadarSvg(bean.taste, 130);
-  const expandRowParts = [];
-  if (bean.purchaseDate) expandRowParts.push(`購入 ${bean.purchaseDate.slice(5).replace('-', '/')}`);
-  if (bean.brew) expandRowParts.push(bean.brew);
+  const tasteRadar = tasteRadarSvg(bean.taste, 110);
+  const factRows = [];
+  if (bean.origin) factRows.push(['産地', bean.origin]);
+  if (bean.roast) factRows.push(['焙煎度', bean.roast]);
+  if (bean.process) factRows.push(['精製方法', bean.process]);
+  if (bean.purchaseDate) factRows.push(['購入日', bean.purchaseDate.slice(5).replace('-', '/')]);
+  if (bean.brew) factRows.push(['淹れ方', bean.brew]);
   const latestEntry = entriesCache
     .filter((e) => e.beanId === bean.id)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
@@ -786,10 +793,13 @@ function beanCardHtml(bean) {
           <span class="label">今日の一言で選べる</span>
           <button class="toggle-switch${bean.inUse !== false ? ' on' : ''}" onclick="toggleBeanInUse('${bean.id}', event)"><span class="knob"></span></button>
         </div>
-        ${tasteRadar ? `<div class="taste-radar-wrap">${tasteRadar}</div>` : ''}
-        ${expandRowParts.length ? `<div class="bean-card-expand-row">${escapeHtml(expandRowParts.join(' ・ '))}</div>` : ''}
+        ${(tasteRadar || factRows.length) ? `
+        <div class="taste-radar-row">
+          ${tasteRadar ? `<div class="taste-radar-wrap">${tasteRadar}</div>` : ''}
+          ${factRows.length ? `<div class="taste-fact-list">${factRows.map(([k, v]) => `<div class="fact-row"><span class="fact-k">${k}</span><span class="fact-v">${escapeHtml(v)}</span></div>`).join('')}</div>` : ''}
+        </div>` : ''}
         ${bean.flavorNotes ? `<div class="bean-card-expand-notes">${escapeHtml(bean.flavorNotes)}</div>` : ''}
-        ${(!tasteRadar && !expandRowParts.length && !bean.flavorNotes) ? '<div class="bean-card-expand-row" style="color:var(--text-muted)">詳細情報はまだありません</div>' : ''}
+        ${(!tasteRadar && !factRows.length && !bean.flavorNotes) ? '<div class="bean-card-expand-row" style="color:var(--text-muted)">詳細情報はまだありません</div>' : ''}
         ${beanTimelineHtml(bean.id)}
       </div>` : ''}
     </div>`;
@@ -854,9 +864,14 @@ function entryPhotos(entry) {
   return [];
 }
 
+const TIMELINE_PAGE_SIZE = 3;
+let _expandedTimelineIds = new Set();
+
 function beanTimelineHtml(beanId) {
   const entries = entriesCache.filter((e) => e.beanId === beanId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  const rows = entries.map((entry, i) => {
+  const showAll = _expandedTimelineIds.has(beanId);
+  const visibleEntries = showAll ? entries : entries.slice(0, TIMELINE_PAGE_SIZE);
+  const rows = visibleEntries.map((entry, i) => {
     const d = new Date(entry.createdAt);
     const timeLabel = `${formatDayLabel(d)} ${formatTime(d)}`;
     const photos = entryPhotos(entry);
@@ -874,6 +889,10 @@ function beanTimelineHtml(beanId) {
         </div>
       </div>`;
   }).join('');
+  const remaining = entries.length - visibleEntries.length;
+  const moreBtn = remaining > 0
+    ? `<button class="timeline-more-btn" onclick="toggleTimelineExpand('${beanId}', event)">すべて見る(残り${remaining}件)</button>`
+    : '';
   return `
     <div class="bean-card-expand-divider"></div>
     <div class="detail-entries-heading">
@@ -882,7 +901,14 @@ function beanTimelineHtml(beanId) {
     </div>
     <div class="timeline">
       ${rows || '<div class="bean-card-expand-row" style="color:var(--text-muted)">まだ記録がありません</div>'}
-    </div>`;
+    </div>
+    ${moreBtn}`;
+}
+
+function toggleTimelineExpand(beanId, event) {
+  event.stopPropagation();
+  _expandedTimelineIds.add(beanId);
+  renderBeansList();
 }
 
 /* ══════════════════════ 日々タブ ══════════════════════ */
