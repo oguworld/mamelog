@@ -308,9 +308,15 @@ function renderWikiCategoryList() {
   const cat = WIKI_CATEGORIES.find((c) => c.id === _wikiCategoryId);
   const list = document.getElementById('wiki-category-list');
   if (!cat) { list.innerHTML = ''; return; }
+  let lastGroup = undefined;
   list.innerHTML = cat.items.map((item) => {
     const open = _expandedWikiIds.has(item.id);
+    const groupHeading = (item.group && item.group !== lastGroup)
+      ? `<div class="wiki-group-heading">${item.group}</div>`
+      : '';
+    lastGroup = item.group;
     return `
+      ${groupHeading}
       <button class="wiki-card" onclick="toggleWikiItemExpand('${item.id}')">
         <div class="wiki-card-top">
           <div class="wiki-card-title">${item.title}</div>
