@@ -67,6 +67,10 @@ jobs:
       # 撮影/選択しようとした瞬間にクラッシュする。App Store審査でも必須)。
       # sg-weekend-appは写真関連機能が無く、sg-bus-naviは位置情報のみだったため、
       # この設定はBean Diary固有。
+      # NSPhotoLibraryAddUsageDescriptionは@capacitor/cameraの仕様上、カメラ撮影時に
+      # 内部でフォトライブラリへの保存許可を要求するため別途必須(2026-11-24、実機TestFlight
+      # テストで「カメラをタップしても起動しない」の原因として判明。公式READMEのiOS設定手順に
+      # 記載されているが見落としていた)。
       - name: Set camera/photo library usage description in Info.plist
         run: |
           cd ios-app
@@ -74,6 +78,8 @@ jobs:
           /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription '豆の写真を撮影するためにカメラを使用します。'" ios/App/App/Info.plist
           /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string '豆の写真を選択するためにフォトライブラリを使用します。'" ios/App/App/Info.plist || \
           /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryUsageDescription '豆の写真を選択するためにフォトライブラリを使用します。'" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryAddUsageDescription string '撮影した豆の写真をフォトライブラリに保存するために使用します。'" ios/App/App/Info.plist || \
+          /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryAddUsageDescription '撮影した豆の写真をフォトライブラリに保存するために使用します。'" ios/App/App/Info.plist
 
       - name: Select Xcode 26
         run: |
