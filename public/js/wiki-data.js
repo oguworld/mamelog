@@ -70,6 +70,7 @@ const WIKI_CATEGORIES = [
       { id: 'equip-brand-kinto', title: 'KINTO(キントー)', body: 'デザイン性の高いガラス・陶器製品で知られる日本のブランド。スリムなドリッパー「SCS」シリーズなど、見た目と使い勝手を両立した製品が多い。' },
       { id: 'equip-brand-fellow', title: 'Fellow', body: 'スタイリッシュな細口ケトルやスケールで知られる海外ブランド。温度計付きケトル「Stagg」シリーズなどが人気。' },
       { id: 'equip-brand-bodum', title: 'Bodum(ボダム)', body: 'フレンチプレスの代表的メーカー。デンマーク発で、シンプルなガラス製プレスポット「CHAMBORD」シリーズが定番。' },
+      { id: 'equip-brand-timemore', title: 'Timemore(タイムモア)', body: '中国発のブランドで、コンパクトな手挽きミル「栗子(Chestnut)」シリーズが人気。スケールや電動ミルなど他の器具も幅広く展開している。' },
     ],
   },
   {
