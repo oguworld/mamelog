@@ -925,6 +925,9 @@ function activeBeans() {
 function updateQuickEntryBeanLabel() {
   const bean = beansCache.find((b) => b.id === _daysSelectedBeanId);
   document.getElementById('quick-entry-bean-label').textContent = bean ? bean.name : '豆を選ぶ';
+  const thumb = document.getElementById('quick-entry-bean-thumb');
+  thumb.style.cssText = bean ? beanThumbStyle(bean) : '';
+  thumb.innerHTML = bean && bean.photo ? '' : beanIconSvg(24);
 }
 
 function renderDaysList() {

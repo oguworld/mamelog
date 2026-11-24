@@ -278,13 +278,24 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
   padding: 0 16px; height: 46px; font-size: 16px; color: var(--espresso);
 }
 .entry-brew-input::placeholder { color: var(--text-muted); }
-.bean-chip-select {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: var(--sand); border-radius: var(--radius-chip);
-  align-self: flex-start; max-width: 100%;
-  padding: 6px 12px; font-size: 12.5px; font-weight: 500; border: 0; cursor: pointer;
+.bean-bar-select {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  background: var(--cream); border-radius: var(--radius-btn); border: 0;
+  padding: 10px; cursor: pointer; text-align: left;
 }
-.bean-chip-select span.label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bean-bar-thumb {
+  width: 52px; height: 52px; border-radius: 12px; flex: none;
+  background-size: cover; background-position: center;
+  display: grid; place-items: center;
+}
+.bean-bar-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.bean-bar-caption { font-size: 10.5px; color: var(--text-muted); }
+.bean-bar-name {
+  font-size: 15px; font-weight: 700; color: var(--espresso);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* .confirm-dialog button の汎用paddingが漏れて潰れるのを防ぐ(既知のパターン) */
+.confirm-dialog .bean-bar-select { padding: 10px; }
 
 /* ── 日々タブ: 日付グループ ── */
 .day-group { display: flex; flex-direction: column; gap: 10px; }
