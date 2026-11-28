@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bean Diary — 豆と過ごす、毎日のコーヒー記録</title>
+  <meta name="description" content="コーヒー豆を写真で記録し、淹れるたびの「ひとこと」を積み重ねていく個人用の記録帳。AIが写真から豆の情報を自動入力し、好みの傾向も分析します。データは端末内にのみ保存されます。">
+  <meta property="og:title" content="Bean Diary">
+  <meta property="og:description" content="豆と過ごす、毎日のコーヒー記録。写真で記録して、ひとことを積み重ねる。">
+  <meta property="og:image" content="https://coffee.willoa.net/icons/icon-512.png">
+  <meta property="og:url" content="https://coffee.willoa.net/about">
+  <link rel="icon" href="/icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #F6F0E8;
+      --warm-white: #FFFFFF;
+      --sand: #EADFD1;
+      --espresso: #3B2418;
+      --caramel: #A4521F;
+      --caramel-dark: #7A3D16;
+      --caramel-pale: #F3E4D4;
+      --text-muted: #7A6455;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Zen Maru Gothic', sans-serif;
+      background: var(--cream);
+      color: var(--espresso);
+      line-height: 1.6;
+    }
+    a { color: inherit; }
+
+    /* ── NAV: 左にロゴ、右にテキストリンク+丸ピルCTA(dotD踏襲) ── */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 24px clamp(20px, 5vw, 56px);
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: var(--espresso);
+      font-weight: 800; font-size: 18px;
+    }
+    .nav-logo img { width: 30px; height: 30px; border-radius: 8px; }
+    .nav-links { display: flex; align-items: center; gap: 28px; }
+    .nav-link { font-size: 14px; font-weight: 700; color: var(--espresso); text-decoration: none; }
+    .nav-cta {
+      background: var(--espresso);
+      color: var(--cream);
+      border: none; border-radius: 50px;
+      padding: 12px 24px;
+      font-family: inherit;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer; text-decoration: none;
+      white-space: nowrap;
+    }
+    @media (max-width: 640px) { .nav-links .nav-link { display: none; } }
+
+    /* ── HERO: 左寄せ、小さいキッカー+超大型見出し(dotD踏襲) ── */
+    .hero {
+      padding: 40px clamp(20px, 5vw, 56px) 20px;
+      max-width: 1160px;
+      margin: 0 auto;
+    }
+    .hero-kicker {
+      font-size: 13px; font-weight: 700; letter-spacing: 0.3em;
+      color: var(--caramel); margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: clamp(40px, 9vw, 84px);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+      color: var(--espresso);
+      margin-bottom: 28px;
+    }
+    .hero-sub {
+      font-size: 16px; color: var(--text-muted);
+      max-width: 520px;
+      margin-bottom: 36px;
+      line-height: 1.9;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--caramel);
+      color: #fff;
+      border: none; border-radius: 50px;
+      padding: 16px 34px;
+      font-family: inherit;
+      font-size: 16px; font-weight: 700;
+      cursor: pointer; text-decoration: none;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn-primary:hover { background: var(--caramel-dark); transform: translateY(-1px); }
+    .btn-outline {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent;
+      color: var(--espresso);
+      border: 1.5px solid var(--espresso);
+      border-radius: 50px;
+      padding: 16px 34px;
+      font-family: inherit;
+      font-size: 16px; font-weight: 700;
+      cursor: pointer; text-decoration: none;
+    }
+
+    /* ── 大きな豆アイコン(dotDの単色巨大イラスト相当) ── */
+    .mark-wrap {
+      display: flex; justify-content: center;
+      padding: 10px clamp(20px, 5vw, 56px) 40px;
+    }
+    .mark { width: min(360px, 60vw); height: auto; }
+
+    /* ── 非対称の写真コラージュ(dotDの2枚の写真組みを踏襲、等サイズの横並びをやめる) ── */
+    .collage {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 20px;
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 0 clamp(20px, 5vw, 56px) 100px;
+      align-items: start;
+    }
+    .collage-item {
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(59,36,24,0.14);
+    }
+    .collage-item.tall { margin-top: 48px; }
+    .collage-item img { width: 100%; height: auto; display: block; }
+    @media (max-width: 760px) {
+      .collage { grid-template-columns: 1fr; }
+      .collage-item.tall { margin-top: 0; }
+    }
+
+    /* ── セクション共通(見出しを大きく・太く、dotD踏襲) ── */
+    .section {
+      padding: 90px clamp(20px, 5vw, 56px);
+      max-width: 1160px;
+      margin: 0 auto;
+    }
+    .section-kicker {
+      font-size: 13px; font-weight: 700; letter-spacing: 0.3em;
+      color: var(--caramel); margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 800;
+      line-height: 1.3;
+      margin-bottom: 40px;
+      max-width: 720px;
+    }
+    .section-title em { font-style: normal; color: var(--caramel); }
+
+    /* ── CONCEPT ── */
+    .concept-body { max-width: 640px; }
+    .concept-body p { font-size: 16px; color: var(--text-muted); line-height: 2; margin-bottom: 20px; }
+    .concept-tagline { font-weight: 800; font-size: 20px; color: var(--espresso); margin-top: 28px; }
+
+    /* ── FEATURES: 太いボーダー区切りのリスト(dotD寄りのフラットな構成) ── */
+    .feature-row {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 24px;
+      padding: 32px 0;
+      border-top: 2px solid var(--espresso);
+    }
+    .feature-row:last-child { border-bottom: 2px solid var(--espresso); }
+    .feature-icon { font-size: 32px; }
+    .feature-row h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
+    .feature-row p { font-size: 15px; color: var(--text-muted); line-height: 1.8; max-width: 560px; }
+
+    /* ── AUDIENCE ── */
+    .audience-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+    .audience-list li {
+      padding: 20px 0; border-top: 2px solid var(--sand);
+      font-size: 16px; display: flex; align-items: flex-start; gap: 16px;
+    }
+    .audience-list li:last-child { border-bottom: 2px solid var(--sand); }
+    .audience-list li span { font-size: 22px; line-height: 1; }
+
+    /* ── PRIVACY ── */
+    .privacy-box {
+      background: var(--caramel-pale);
+      border-radius: 20px;
+      padding: 32px clamp(20px, 4vw, 44px);
+      font-size: 14px; color: var(--espresso);
+      line-height: 1.9;
+    }
+    .privacy-box strong { color: var(--caramel-dark); }
+
+    /* ── FOOTER: 濃色背景+分割CTA(dotD踏襲) ── */
+    .footer-cta {
+      background: var(--espresso);
+      color: var(--cream);
+    }
+    .footer-cta-split {
+      display: grid; grid-template-columns: 1fr 1fr;
+    }
+    .footer-cta-split a {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 28px clamp(20px, 5vw, 56px);
+      text-decoration: none; color: var(--cream);
+      font-size: 15px; font-weight: 700;
+      border-bottom: 1px solid rgba(246,240,232,0.2);
+      transition: background 0.15s;
+    }
+    .footer-cta-split a:first-child { border-right: 1px solid rgba(246,240,232,0.2); }
+    .footer-cta-split a:hover { background: rgba(246,240,232,0.08); }
+    @media (max-width: 640px) {
+      .footer-cta-split { grid-template-columns: 1fr; }
+      .footer-cta-split a:first-child { border-right: none; }
+    }
+    .footer-tagline {
+      padding: clamp(50px, 10vw, 100px) clamp(20px, 5vw, 56px) 60px;
+    }
+    .footer-tagline h2 {
+      font-size: clamp(28px, 6vw, 52px);
+      font-weight: 800;
+      line-height: 1.3;
+    }
+    .footer-links {
+      display: flex; flex-wrap: wrap; gap: 12px 28px;
+      padding: 0 clamp(20px, 5vw, 56px) 50px;
+      font-size: 13px; color: rgba(246,240,232,0.7);
+    }
+    .footer-links a { text-decoration: underline; }
+    .footer-copyright {
+      padding: 20px clamp(20px, 5vw, 56px) calc(20px + env(safe-area-inset-bottom, 0px));
+      border-top: 1px solid rgba(246,240,232,0.15);
+      font-size: 12px; color: rgba(246,240,232,0.55);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="/about" class="nav-logo">
+      <img src="/icons/icon-192.png" alt="Bean Diary">
+      Bean Diary
+    </a>
+    <div class="nav-links">
+      <a href="#concept" class="nav-link">CONCEPT</a>
+      <a href="#features" class="nav-link">FEATURES</a>
+      <a href="#privacy" class="nav-link">PRIVACY</a>
+      <a href="/" class="nav-cta">アプリを開く</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-kicker">PERSONAL COFFEE JOURNAL</div>
+    <h1>豆と過ごす、<br>毎日のコーヒー記録。</h1>
+    <p class="hero-sub">どの豆が好きだったか、どう淹れたら美味しかったか——覚えておくのは意外と難しいもの。Bean Diaryは豆を一つひとつ写真で記録し、飲むたびの「ひとこと」を積み重ねていく、あなただけのコーヒー記録帳です。</p>
+    <a href="/" class="btn-primary">☕ Bean Diaryを開く</a>
+  </section>
+
+  <!-- 大きな豆アイコン -->
+  <div class="mark-wrap">
+    <svg class="mark" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="100" cy="100" rx="78" ry="94" fill="var(--espresso)"/>
+      <path d="M100 20 C 70 60, 70 140, 100 180" stroke="var(--cream)" stroke-width="10" stroke-linecap="round" fill="none"/>
+    </svg>
+  </div>
+
+  <!-- 非対称コラージュ -->
+  <div class="collage">
+    <div class="collage-item">
+      <img src="/screenshots/screen-bean.png" alt="豆の詳細画面">
+    </div>
+    <div class="collage-item tall">
+      <img src="/screenshots/screen-preference.png" alt="好みタブのAI分析結果">
+    </div>
+  </div>
+
+  <!-- CONCEPT -->
+  <section class="section" id="concept">
+    <div class="section-kicker">CONCEPT</div>
+    <h2 class="section-title">「日記」ではなく、<br><em>「豆」</em>を主役に。</h2>
+    <div class="concept-body">
+      <p>多くの記録アプリは日付が軸です。でもコーヒー好きが本当に覚えておきたいのは「あの豆、どうだったっけ」という豆ごとの記憶。Bean Diaryは日付ではなく豆を軸に据え、一つの豆と過ごした時間を、写真とひとことで積み重ねていきます。</p>
+      <p class="concept-tagline">豆と暮らすように、記録する。</p>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="section" id="features">
+    <div class="section-kicker">FEATURES</div>
+    <h2 class="section-title">できること</h2>
+    <div>
+      <div class="feature-row">
+        <div class="feature-icon">📷</div>
+        <div>
+          <h3>写真でAIが自動入力</h3>
+          <p>豆のパッケージを撮影するだけで、AIが産地・焙煎度・フレーバーノートなどを読み取り、入力をお手伝いします。もちろんオフにもできます。</p>
+        </div>
+      </div>
+      <div class="feature-row">
+        <div class="feature-icon">📝</div>
+        <div>
+          <h3>日々のひとこと</h3>
+          <p>「今日はこう感じた」をひとこと残すだけ。星評価・淹れ方メモ・写真も一緒に記録でき、同じ豆でも淹れ方による味の違いをあとから見返せます。</p>
+        </div>
+      </div>
+      <div class="feature-row">
+        <div class="feature-icon">⭐</div>
+        <div>
+          <h3>AIによる好み分析</h3>
+          <p>星評価をつけた記録をもとに、AIがあなたの好みの傾向を分析。次に試すとよい豆の特徴(産地×焙煎度×精製方法)を提案します。</p>
+        </div>
+      </div>
+      <div class="feature-row">
+        <div class="feature-icon">💡</div>
+        <div>
+          <h3>豆知識</h3>
+          <p>産地・品種・精製方法・焙煎度・味の表現・淹れ方・メニュー&レシピ・器具・メーカーまで、コーヒーの基礎知識をいつでも確認できます。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AUDIENCE -->
+  <section class="section">
+    <div class="section-kicker">FOR YOU</div>
+    <h2 class="section-title">こんな人に<br>おすすめ</h2>
+    <ul class="audience-list">
+      <li><span>☕</span> 家でコーヒーを淹れていて、豆ごとの記憶があいまいになりがちな人</li>
+      <li><span>🔍</span> 自分の好みの傾向を知って、次に試す豆選びの参考にしたい人</li>
+      <li><span>📚</span> コーヒーの基礎知識を、必要なときにさっと確認したい人</li>
+      <li><span>🔒</span> 記録はあくまで自分だけのものにしておきたい人(SNS共有や交流機能はありません)</li>
+    </ul>
+  </section>
+
+  <!-- PRIVACY -->
+  <section class="section" id="privacy">
+    <div class="section-kicker">PRIVACY</div>
+    <div class="privacy-box">
+      <strong>プライバシーについて:</strong> アカウント登録・ログインは不要です。豆の情報・日々の記録・写真などの個人データは、お使いの端末内にのみ保存され、運営者のサーバーに保存されることはありません。写真からの自動入力・好み分析の機能を使った場合のみ、該当データが解析のため外部のAIサービスに送信されます(自動入力はいつでもオフにできます)。
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer-cta">
+    <div class="footer-cta-split">
+      <a href="/">Webで使う ☕<span>→</span></a>
+      <a href="https://willoa.net/#contact">お問い合わせ<span>→</span></a>
+    </div>
+    <div class="footer-tagline">
+      <h2>今日の一杯から、<br>記録してみませんか。</h2>
+    </div>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="https://willoa.net">About Willoa</a>
+      <a href="https://willoa.net/privacy-policy">Privacy Policy</a>
+    </div>
+    <div class="footer-copyright">© 2026 WILLOA PTE. LTD. / Bean Diary</div>
+  </footer>
+
+</body>
+</html>

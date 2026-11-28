@@ -24,6 +24,12 @@ app.get('/sw.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'sw.js'));
 });
 
+// アプリ紹介ページ(2026-11-28追加、sg-bus-navi/sg-weekend-appのabout.htmlパターンを踏襲)。
+// express.staticの拡張子なしルーティングには頼らず、/aboutへの明示的なルートで返す。
+app.get('/about', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'about.html'));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // 画像(data URL、base64)を本文に含むリクエストのための上限。
