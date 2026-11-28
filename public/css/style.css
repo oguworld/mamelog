@@ -269,8 +269,10 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
   display: flex; flex-direction: column; gap: 8px;
 }
 .preference-reco-title { font-size: 15px; font-weight: 700; color: var(--espresso); }
+.preference-reco-shop { font-size: 12px; color: var(--text-muted); margin-top: -4px; }
 .preference-reco-tags { display: flex; gap: 6px; flex-wrap: wrap; }
 .preference-reco-reason { font-size: 12.5px; line-height: 1.6; color: var(--text-muted); }
+.preference-reco-link { font-size: 12.5px; color: var(--caramel); font-weight: 700; text-decoration: underline; }
 
 .preference-analysis-loading { font-size: 12.5px; color: var(--text-muted); text-align: center; padding: 6px 0; }
 

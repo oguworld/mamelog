@@ -40,10 +40,10 @@
 - 設定の「写真からの自動入力」トグルは**初期状態でON**(説明文「豆を判別するため、写真を外部のAIサービスに送信します」を必ず表示)。OFF時は写真を送信しない
 - レート制限: `/api/identify`専用に厳しめのリミッター(`express-rate-limit`、例: 1分あたり10回程度)を適用する。SGBusNaviの2段構成レート制限を参考にする
 
-## AI好み分析(「好み」タブ、2026-11-24追加)
+## AI好み分析(「好み」タブ、2026-11-24追加、2026-11-28に実在商品の提案に変更)
 - エンドポイント: `POST /api/recommend`、リクエスト`{ entries: [{ origin, roast, process, brew, rating }, ...] }`(画像は含めない、最大50件)
-- モデル: `claude-sonnet-4-6`(`/api/identify`と統一)。web_searchは**使わない**(実在の商品名・ロースター名・店名を提案させないため)。`tools`+`tool_choice: {type:'tool', name:'recommend_beans'}`で構造化出力を強制(web_search不使用のため強制して問題ない)
-- レスポンス: `{ summary, recommendations: [{title, origin, roast, process, reason}] }` を3件固定。実在商品ではなく「産地×焙煎度×精製方法」のような特徴の組み合わせのみを提案する(ハルシネーション対策、システムプロンプトで明記)
+- モデル: `claude-sonnet-4-6`(`/api/identify`と統一)。**2026-11-28〜web_searchを使用する**(ユーザーから「傾向だけでなく具体的な豆を紹介してほしい」との要望。以前はハルシネーション対策で特徴の組み合わせのみを提案していたが、`identifyBean()`と同じ「検索結果に基づいてのみ報告する」方針に統一)。`tool_choice`は強制しない(強制するとweb_searchが使えなくなるため)。`identifyBean()`と同じ`pause_turn`再送ループが必要
+- レスポンス: `{ summary, recommendations: [{name, shop, origin, roast, process, source_url, reason}] }` を3件固定。`name`(実在商品名)・`shop`(販売元)は必須、`origin`/`roast`/`process`は検索で分かった場合のみ。検索で見つけた実在商品のみを報告し、記憶から商品名を作り出さないようシステムプロンプトで明記
 - 対象データ: `entries`のうち`rating > 0`(★評価済み)のみ。各エントリの自由記述`text`・写真・豆名・店名は送らない(送信データ最小化のプライバシー方針)。★評価付きの記録が5件未満の場合はタブ内で空状態を表示し、AI呼び出しは行わない
 - 送信は「分析する/再分析する/更新する」ボタンをユーザーが明示的に押したときのみ(自動実行しない)。専用の同意トグルは設定画面に追加しない(ボタン自体が同意ジェスチャーになるため)
 - 分析結果はサーバーに保存しない(ステートレスなリレーのみ)。端末側では`settings.preferenceAnalysis`(localStorage、新規IndexedDBストアは作らない)に`{summary, recommendations, analyzedAt, basedOnCount}`として保存し、次回タブを開いたときに前回結果を表示する

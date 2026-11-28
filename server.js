@@ -125,7 +125,7 @@ const IDENTIFY_BEAN_TOOL = {
 
 const RECOMMEND_TOOL = {
   name: 'recommend_beans',
-  description: 'ユーザーの★評価付きの記録傾向から、次に試すとよさそうな豆の「特徴の組み合わせ」を3件まとめて報告する。実在の商品名・ロースター名は絶対に出さないこと。',
+  description: 'ユーザーの★評価付きの記録傾向から、次に試すとよさそうな実在のコーヒー豆商品をWeb検索で調べて3件まとめて報告する。',
   input_schema: {
     type: 'object',
     required: ['summary', 'recommendations'],
@@ -137,13 +137,15 @@ const RECOMMEND_TOOL = {
         maxItems: 3,
         items: {
           type: 'object',
-          required: ['title', 'origin', 'roast', 'process', 'reason'],
+          required: ['name', 'shop', 'reason'],
           properties: {
-            title: { type: 'string', description: '特徴の組み合わせを表す短い見出し(例: 「エチオピア産 × 浅煎り × ウォッシュド」)' },
-            origin: { type: 'string', description: '産地' },
-            roast: { type: 'string', enum: ROAST_VALUES },
-            process: { type: 'string', enum: PROCESS_VALUES },
-            reason: { type: 'string', description: 'この組み合わせを勧める理由と期待される風味の一言' },
+            name: { type: 'string', description: '実在する商品名' },
+            shop: { type: 'string', description: '販売元・ロースター名' },
+            origin: { type: 'string', description: '産地(分かる場合)' },
+            roast: { type: 'string', enum: ROAST_VALUES, description: '焙煎度(分かる場合)' },
+            process: { type: 'string', enum: PROCESS_VALUES, description: '精製方法(分かる場合)' },
+            source_url: { type: 'string', description: '参照した販売ページ・公式ページのURL' },
+            reason: { type: 'string', description: 'この商品を勧める理由と期待される風味の一言' },
           },
         },
       },
@@ -196,8 +198,11 @@ async function analyzeBeanInsight(entries) {
   return toolUse.input;
 }
 
-// web_searchは使わない(実在商品を検索・提案させないための方針、設計書1参照)。
-// そのためpause_turnループは不要で、単発のmessages.create()のみで完結する。
+// web_searchを使い、実在する商品をおすすめする(2026-11-28変更。以前はハルシネーション
+// 対策としてWeb検索なし・特徴の組み合わせのみを提案していたが、ユーザーから
+// 「具体的な豆を紹介してほしい」との要望があり、identifyBean()と同じ
+// 「検索結果に基づいてのみ報告する」方針に切り替えた)。
+// identifyBean()と同じpause_turn再送ループが必要(tool_choiceは強制しない)。
 async function recommendBeans(entries) {
   if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
   const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
@@ -209,20 +214,29 @@ async function recommendBeans(entries) {
     },
   ];
 
-  const res = await client.messages.create({
+  const requestParams = {
     model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
+    max_tokens: 1536,
     system: `あなたはコーヒー豆の記録アプリ「Bean Diary」の好み分析アシスタントです。
-ユーザーの★評価付きの記録(各要素は origin[産地]・roast[焙煎度]・process[精製方法]・brew[淹れ方]・rating[1〜5の評価]のJSON配列)を受け取り、
-評価の傾向から好みを分析してください。
-重要な制約: 実在の商品名・ブランド名・ロースター名・店名は絶対に出さないこと。あなたはWeb検索ができないため、
-実在商品を挙げることは不正確な情報(ハルシネーション)になります。必ず「産地×焙煎度×精製方法」のような
-特徴の組み合わせとして提案してください。
-必ず recommend_beans ツールを1回呼んで結果を報告してください。`,
+ユーザーの★評価付きの記録(各要素は origin[産地]・roast[焙煎度]・process[精製方法]・brew[淹れ方]・rating[0〜5の評価、0.5刻み]のJSON配列)を受け取り、
+評価の傾向から好みを分析し、web_searchで実在する販売中のコーヒー豆商品を探して3件おすすめしてください。
+重要な制約: 検索で実際に見つかった、現在購入できそうな商品のみを報告すること。検索せずに記憶から商品名を
+作り出さないこと(不正確な情報になるため)。見つからない項目(origin/roast/process等)は無理に埋めず省略してよいが、
+name(商品名)・shop(販売元)・reason(理由)・source_url(参照URL)は必ず埋めること。
+調査が終わったら、必ず recommend_beans ツールを1回呼んで結果を報告してください。`,
     messages,
-    tools: [RECOMMEND_TOOL],
-    tool_choice: { type: 'tool', name: 'recommend_beans' },
-  });
+    tools: [
+      { type: 'web_search_20260209', name: 'web_search', max_uses: 5 },
+      RECOMMEND_TOOL,
+    ],
+  };
+
+  let res = await client.messages.create(requestParams);
+
+  for (let resumeCount = 0; res.stop_reason === 'pause_turn' && resumeCount < 5; resumeCount++) {
+    messages.push({ role: 'assistant', content: res.content });
+    res = await client.messages.create({ ...requestParams, messages });
+  }
 
   if (res.stop_reason === 'refusal') throw new Error('request refused');
 

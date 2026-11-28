@@ -463,13 +463,15 @@ function preferenceSummaryHtml() {
 function preferenceRecommendationCardHtml(rec) {
   return `
     <div class="preference-reco-card">
-      <div class="preference-reco-title">${escapeHtml(rec.title || '')}</div>
+      <div class="preference-reco-title">${escapeHtml(rec.name || '')}</div>
+      ${rec.shop ? `<div class="preference-reco-shop">${escapeHtml(rec.shop)}</div>` : ''}
       <div class="preference-reco-tags">
         ${rec.origin ? `<span class="chip">${escapeHtml(rec.origin)}</span>` : ''}
         ${rec.roast ? `<span class="chip">${escapeHtml(rec.roast)}</span>` : ''}
         ${rec.process ? `<span class="chip">${escapeHtml(rec.process)}</span>` : ''}
       </div>
       <div class="preference-reco-reason">${escapeHtml(rec.reason || '')}</div>
+      ${rec.source_url ? `<a href="${escapeHtml(rec.source_url)}" target="_blank" rel="noopener" class="preference-reco-link">販売ページを見る</a>` : ''}
     </div>
   `;
 }
