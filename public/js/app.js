@@ -196,11 +196,28 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
 // SG在住Navi(sg-weekend-app)のdoShare()と同じ方針: Web Share API優先、
 // 無ければクリップボードコピーにフォールバック。Bean DiaryはApp Store/X等が
 // まだ無いため、紹介ページ(/about)へのリンクのみのシンプルな構成にする。
+const SHARE_URL = 'https://coffee.willoa.net/about';
+
+// QRコード付きの共有シート(sg-weekend-appのopenQrShareSheet()と同じ方針、qrcode-generator.js流用)
+function openShareSheet() {
+  const canvas = document.getElementById('share-qr-canvas');
+  if (canvas && !canvas.hasChildNodes()) {
+    const qr = qrcode(0, 'M');
+    qr.addData(SHARE_URL);
+    qr.make();
+    canvas.innerHTML = qr.createSvgTag(5, 4);
+  }
+  document.getElementById('share-overlay').classList.add('visible');
+}
+function closeShareSheet() {
+  document.getElementById('share-overlay').classList.remove('visible');
+}
+
 async function shareApp() {
   const data = {
     title: 'Bean Diary',
     text: '豆と過ごす、毎日のコーヒー記録。Bean Diaryを使ってみませんか?',
-    url: 'https://coffee.willoa.net/about',
+    url: SHARE_URL,
   };
   if (navigator.share) {
     try { await navigator.share(data); } catch (_) { /* ユーザーがキャンセルした場合も含む */ }

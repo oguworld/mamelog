@@ -59,6 +59,9 @@ html, body {
 body { overscroll-behavior-y: none; overflow-x: hidden; }
 
 a { color: inherit; text-decoration: none; }
+/* iOSのデータ検出(電話番号・住所・日付等)がformat-detectionメタタグだけでは
+   完全に抑止できない場合の保険。Appleが自動検出箇所に付与する属性を直接上書きする */
+a[x-apple-data-detectors], *[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
 button { font-family: inherit; }
 
 /* iOS Safariの自動ズーム防止のためinput/selectは16px以上必須(CLAUDE.md規約) */

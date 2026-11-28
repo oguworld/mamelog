@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#F6F0E8">
+<!-- iOSのデータ検出機能(電話番号・金額等を含む文章まるごとを自動的に青いリンク風に
+     表示してしまう)を無効化する。ひとこと本文に「200SGD」のような金額表現が入ると
+     発生することを実機で確認(2026-11-28) -->
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
 <title>Bean Diary</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -213,7 +217,7 @@
     <div class="settings-section">
       <div class="settings-section-title">このアプリについて</div>
       <div class="settings-card">
-        <button class="settings-row" onclick="if(!_touchGuard()) shareApp()">
+        <button class="settings-row" onclick="if(!_touchGuard()) openShareSheet()">
           <span class="label">友達にシェアする</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A6455" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
         </button>
@@ -358,9 +362,21 @@
     </div>
   </div>
 
+  <!-- 友達にシェア(QRコード、sg-weekend-appのqr-share-sheetと同じ方針) -->
+  <div class="overlay" id="share-overlay" onclick="if(event.target===this) closeShareSheet()">
+    <div class="confirm-dialog wide" style="text-align:center">
+      <div class="message" style="font-weight:700">アプリを共有</div>
+      <div id="share-qr-canvas" style="display:flex;justify-content:center;align-items:center;background:#fff;border-radius:14px;padding:18px"></div>
+      <div class="settings-desc" style="padding:0">このQRコードを読み取ると、Bean Diaryの紹介ページが開きます</div>
+      <button class="ok" style="width:100%" onclick="shareApp()">シェア</button>
+      <button class="cancel" style="width:100%" onclick="closeShareSheet()">閉じる</button>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 </div>
 <script src="js/wiki-data.js?v=1"></script>
+<script src="qrcode-generator.js"></script>
 <script src="js/app.js?v=1"></script>
 </body>
 </html>
