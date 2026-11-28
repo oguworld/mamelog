@@ -188,6 +188,23 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
   if (settings.theme === 'auto') applyTheme();
 });
 
+// SG在住Navi(sg-weekend-app)のdoShare()と同じ方針: Web Share API優先、
+// 無ければクリップボードコピーにフォールバック。Bean DiaryはApp Store/X等が
+// まだ無いため、紹介ページ(/about)へのリンクのみのシンプルな構成にする。
+async function shareApp() {
+  const data = {
+    title: 'Bean Diary',
+    text: '豆と過ごす、毎日のコーヒー記録。Bean Diaryを使ってみませんか?',
+    url: 'https://coffee.willoa.net/about',
+  };
+  if (navigator.share) {
+    try { await navigator.share(data); } catch (_) { /* ユーザーがキャンセルした場合も含む */ }
+  } else {
+    await navigator.clipboard.writeText(`${data.text}\n${data.url}`);
+    showToast('リンクをコピーしました');
+  }
+}
+
 function toggleSetting(key) {
   settings[key] = !settings[key];
   saveSettings();
@@ -746,12 +763,24 @@ function renderRoastFilterChips() {
   });
 }
 
+// 評価は0.5刻み(実質10点満点)。1つの★に対し、空/半分/満の3段階を
+// クリップパスで重ね描画して表現する(starsHtml・renderStarInput共通)。
+const STAR_PATH = 'M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2 6.3 20.3l1.2-6.4L2.8 9.5l6.4-.8z';
+function starIconHtml(pct, size) {
+  return `<span class="star-icon" style="width:${size}px;height:${size}px">
+    <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="#A4521F" stroke-width="1.8" aria-hidden="true"><path d="${STAR_PATH}"/></svg>
+    ${pct > 0 ? `<svg class="star-fill" width="${size}" height="${size}" viewBox="0 0 24 24" fill="#A4521F" style="clip-path:inset(0 ${100 - pct}% 0 0)" aria-hidden="true"><path d="${STAR_PATH}"/></svg>` : ''}
+  </span>`;
+}
+function starFillPct(rating, i) {
+  const v = rating || 0;
+  if (v >= i) return 100;
+  if (v >= i - 0.5) return 50;
+  return 0;
+}
 function starsHtml(rating, size = 15) {
   let html = '';
-  for (let i = 1; i <= 5; i++) {
-    const filled = i <= Math.round(rating || 0);
-    html += `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${filled ? '#A4521F' : 'none'}" stroke="#A4521F" stroke-width="1.8" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2 6.3 20.3l1.2-6.4L2.8 9.5l6.4-.8z"/></svg>`;
-  }
+  for (let i = 1; i <= 5; i++) html += starIconHtml(starFillPct(rating, i), size);
   return html;
 }
 
@@ -822,6 +851,10 @@ function beanCardHtml(bean) {
           <span class="label">今日のひとことで選べる</span>
           <button class="toggle-switch${bean.inUse !== false ? ' on' : ''}" onclick="toggleBeanInUse('${bean.id}', event)"><span class="knob"></span></button>
         </div>
+        <button class="quick-entry-from-bean-btn" onclick="openQuickEntryForBean('${bean.id}', event)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          この豆にひとことを追加
+        </button>
         ${(tasteRadar || factRows.length) ? `
         <div class="taste-radar-row">
           ${factRows.length ? `<div class="taste-fact-list">${factRows.map(([k, v]) => `<div class="fact-row"><span class="fact-k">${k}</span><span class="fact-v">${escapeHtml(v)}</span></div>`).join('')}</div>` : ''}
@@ -1158,6 +1191,14 @@ function renderQuickEntryRating() {
   renderStarInput('quick-entry-rating', _quickEntryRating, (v) => { _quickEntryRating = v; renderQuickEntryRating(); });
 }
 
+// 豆カード(展開時)の「この豆にひとことを追加」から呼ばれる。その豆を選択済みの
+// 状態でシートを開く(豆選択シートを経由させない、FABからの導線と共用)。
+function openQuickEntryForBean(beanId, event) {
+  event.stopPropagation();
+  _daysSelectedBeanId = beanId;
+  openQuickEntrySheetFromFab();
+}
+
 function openQuickEntrySheetFromFab() {
   const textInput = document.getElementById('quick-entry-text');
   textInput.value = '';
@@ -1332,15 +1373,20 @@ function renderAddTasteSliders() {
 
 // ★入力(今日の一言・ひとこと編集で共用)。総合評価は豆側では手入力せず、
 // ひとことごとの★の平均から算出する(computeBeanRating参照)。
+// 星の左半分タップで-0.5、右半分タップで満点(0.5刻み、実質10点満点)。
 function renderStarInput(containerId, value, onChange) {
   const wrap = document.getElementById(containerId);
-  wrap.innerHTML = [1, 2, 3, 4, 5].map((i) => `
-    <button type="button" class="${i <= value ? 'on' : ''}" data-i="${i}">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2 6.3 20.3l1.2-6.4L2.8 9.5l6.4-.8z"/></svg>
-    </button>
-  `).join('');
-  wrap.querySelectorAll('button').forEach((btn) => {
-    btn.addEventListener('click', () => { onChange(Number(btn.dataset.i) === value ? 0 : Number(btn.dataset.i)); });
+  wrap.innerHTML = [1, 2, 3, 4, 5].map((i) =>
+    `<button type="button" class="star-input-btn" data-i="${i}">${starIconHtml(starFillPct(value, i), 26)}</button>`
+  ).join('');
+  wrap.querySelectorAll('.star-input-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const rect = btn.getBoundingClientRect();
+      const frac = (e.clientX - rect.left) / rect.width;
+      const i = Number(btn.dataset.i);
+      const picked = frac < 0.5 ? i - 0.5 : i;
+      onChange(picked === value ? 0 : picked);
+    });
   });
 }
 

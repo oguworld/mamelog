@@ -175,6 +175,12 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 .bean-card-expand-row { font-size: 12.5px; color: var(--text-muted); }
 .bean-card-expand-toggle { display: flex; align-items: center; justify-content: space-between; }
 .bean-card-expand-toggle .label { font-size: 13px; color: var(--espresso); }
+.quick-entry-from-bean-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: var(--cream); border: 0; border-radius: var(--radius-btn);
+  padding: 12px; font-size: 13px; font-weight: 700; color: var(--caramel);
+  cursor: pointer; font-family: inherit; width: 100%;
+}
 .bean-card-expand-notes { font-size: 12.5px; color: var(--text-muted); line-height: 1.6; }
 .star-row svg { color: var(--caramel); }
 
@@ -488,9 +494,12 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 }
 
 .rating-input { display: flex; gap: 6px; }
-.rating-input button { background: none; border: 0; padding: 4px; cursor: pointer; color: var(--sand); }
-.rating-input button.on { color: var(--caramel); }
+.rating-input button { background: none; border: 0; padding: 4px; cursor: pointer; }
 .confirm-dialog .rating-input button { padding: 4px; }
+/* 星アイコン(空の輪郭+塗りの2枚重ね。塗り側をclip-pathで0/50/100%に切って半星を表現) */
+.star-icon { position: relative; display: inline-block; }
+.star-icon svg { position: absolute; top: 0; left: 0; }
+.star-fill { pointer-events: none; }
 
 .ai-meta-box { background: var(--warm-white); border-radius: 16px; padding: 12px 14px; font-size: 12.5px; color: var(--text-muted); line-height: 1.6; }
 .ai-meta-box a { color: var(--caramel); }

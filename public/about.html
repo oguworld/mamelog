@@ -111,29 +111,35 @@
       display: flex; justify-content: center;
       padding: 10px clamp(20px, 5vw, 56px) 40px;
     }
-    .mark { width: min(360px, 60vw); height: auto; }
+    .mark { width: min(220px, 45vw); height: auto; }
 
-    /* ── 非対称の写真コラージュ(dotDの2枚の写真組みを踏襲、等サイズの横並びをやめる) ── */
-    .collage {
-      display: grid;
-      grid-template-columns: 1.4fr 1fr;
-      gap: 20px;
-      max-width: 1160px;
-      margin: 0 auto;
-      padding: 0 clamp(20px, 5vw, 56px) 100px;
-      align-items: start;
+    /* ── 写真モックアップ(スクショが大きすぎた反省から、SG在住Navi/SGBusNaviの
+       about.htmlと同じ「小さな電話フレームを横並び」の比率に戻す) ── */
+    .mockup-wrap {
+      padding: 0 24px 100px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
     }
-    .collage-item {
-      border-radius: 20px;
-      overflow: hidden;
-      box-shadow: 0 20px 50px rgba(59,36,24,0.14);
+    .mockup-wrap::-webkit-scrollbar { display: none; }
+    .mockup-inner {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      min-width: max-content;
+      padding: 0 24px;
     }
-    .collage-item.tall { margin-top: 48px; }
-    .collage-item img { width: 100%; height: auto; display: block; }
-    @media (max-width: 760px) {
-      .collage { grid-template-columns: 1fr; }
-      .collage-item.tall { margin-top: 0; }
+    .mockup-item { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .mockup-label { font-size: 13px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.04em; }
+    .phone {
+      width: 220px;
+      background: var(--caramel-pale);
+      border-radius: 24px;
+      padding: 9px;
+      box-shadow: 0 20px 50px rgba(59,36,24,0.16), 0 6px 16px rgba(59,36,24,0.1);
     }
+    .phone-img-wrap { border-radius: 15px; overflow: hidden; background: #fff; }
+    .phone img { width: 100%; height: auto; display: block; }
 
     /* ── セクション共通(見出しを大きく・太く、dotD踏襲) ── */
     .section {
@@ -196,9 +202,6 @@
       background: var(--espresso);
       color: var(--cream);
     }
-    .footer-cta-split {
-      display: grid; grid-template-columns: 1fr 1fr;
-    }
     .footer-cta-split a {
       display: flex; align-items: center; justify-content: space-between;
       padding: 28px clamp(20px, 5vw, 56px);
@@ -207,12 +210,7 @@
       border-bottom: 1px solid rgba(246,240,232,0.2);
       transition: background 0.15s;
     }
-    .footer-cta-split a:first-child { border-right: 1px solid rgba(246,240,232,0.2); }
     .footer-cta-split a:hover { background: rgba(246,240,232,0.08); }
-    @media (max-width: 640px) {
-      .footer-cta-split { grid-template-columns: 1fr; }
-      .footer-cta-split a:first-child { border-right: none; }
-    }
     .footer-tagline {
       padding: clamp(50px, 10vw, 100px) clamp(20px, 5vw, 56px) 60px;
     }
@@ -266,13 +264,27 @@
     </svg>
   </div>
 
-  <!-- 非対称コラージュ -->
-  <div class="collage">
-    <div class="collage-item">
-      <img src="/screenshots/screen-bean.png" alt="豆の詳細画面">
-    </div>
-    <div class="collage-item tall">
-      <img src="/screenshots/screen-preference.png" alt="好みタブのAI分析結果">
+  <!-- 画面モックアップ(電話フレームで小さく、横スクロール) -->
+  <div class="mockup-wrap">
+    <div class="mockup-inner">
+      <div class="mockup-item">
+        <div class="phone">
+          <div class="phone-img-wrap"><img src="/screenshots/screen-bean.png" alt="豆の詳細画面"></div>
+        </div>
+        <div class="mockup-label">豆の記録</div>
+      </div>
+      <div class="mockup-item">
+        <div class="phone">
+          <div class="phone-img-wrap"><img src="/screenshots/screen-days.png" alt="日々のひとこと一覧画面"></div>
+        </div>
+        <div class="mockup-label">日々のひとこと</div>
+      </div>
+      <div class="mockup-item">
+        <div class="phone">
+          <div class="phone-img-wrap"><img src="/screenshots/screen-preference.png" alt="好みタブのAI分析結果"></div>
+        </div>
+        <div class="mockup-label">好み分析</div>
+      </div>
     </div>
   </div>
 
@@ -345,7 +357,6 @@
   <!-- FOOTER -->
   <footer class="footer-cta">
     <div class="footer-cta-split">
-      <a href="/">Webで使う ☕<span>→</span></a>
       <a href="https://willoa.net/#contact">お問い合わせ<span>→</span></a>
     </div>
     <div class="footer-tagline">
