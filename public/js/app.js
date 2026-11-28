@@ -99,6 +99,11 @@ let _photoPickTarget = null;
 let _daysQuickPhotos = [];
 let _daysSelectedBeanId = null;
 
+// 日々タブ: 月カレンダー+選択日の年またぎ比較(3年/5年日記対応、2026-11-28)
+let _daysCalYear = new Date().getFullYear();
+let _daysCalMonth = new Date().getMonth(); // 0始まり
+let _daysSelected = { year: _daysCalYear, month: _daysCalMonth, day: new Date().getDate() };
+
 const ROAST_VALUES = ['浅煎り', '中浅煎り', '中煎り', '中深煎り', '深煎り'];
 const PROCESS_VALUES = ['ウォッシュド', 'ナチュラル', 'ハニー', 'その他'];
 const TASTE_KEYS = ['酸味', '苦味', '甘味', 'コク', '香り'];
@@ -1162,9 +1167,120 @@ function advanceEntryPhoto(entryId, total, event) {
   renderDaysList();
 }
 
+function entryCardHtml(entry) {
+  const bean = beansCache.find((b) => b.id === entry.beanId);
+  const d = new Date(entry.createdAt);
+  const photos = entryPhotos(entry);
+  const activeIdx = photos.length ? (_entryPhotoIndex[entry.id] || 0) % photos.length : 0;
+  return `
+    <button class="entry-card" data-entry-id="${entry.id}">
+      <div class="entry-card-body">
+        <div class="entry-card-meta">${beanIconSvg(12)}${escapeHtml(bean ? bean.name : '削除済みの豆')} ・ ${formatTime(d)}</div>
+        ${entry.rating ? `<div class="entry-card-rating">${starsHtml(entry.rating, 12)}</div>` : ''}
+        <div class="entry-card-text">${escapeHtml(entry.text || '')}</div>
+        ${entry.brew ? `<div class="entry-card-brew">${escapeHtml(entry.brew)}</div>` : ''}
+      </div>
+      ${photos.length ? `
+        <div class="entry-photo-carousel">
+          <div class="entry-photo-frame" style="background-image:url(${photos[activeIdx]})" onclick="advanceEntryPhoto('${entry.id}', ${photos.length}, event)"></div>
+          ${photos.length > 1 ? `<div class="entry-photo-dots">${photos.map((_, i) => `<span class="entry-photo-dot${i === activeIdx ? ' active' : ''}"></span>`).join('')}</div>` : ''}
+        </div>` : ''}
+    </button>`;
+}
+
+function _dateKey(y, m, d) { return `${y}-${m}-${d}`; }
+function isRealToday(y, m, d) {
+  const t = new Date();
+  return t.getFullYear() === y && t.getMonth() === m && t.getDate() === d;
+}
+
+function navDaysCalendar(delta) {
+  _daysCalMonth += delta;
+  if (_daysCalMonth < 0) { _daysCalMonth = 11; _daysCalYear--; }
+  if (_daysCalMonth > 11) { _daysCalMonth = 0; _daysCalYear++; }
+  const daysInNewMonth = new Date(_daysCalYear, _daysCalMonth + 1, 0).getDate();
+  _daysSelected = { year: _daysCalYear, month: _daysCalMonth, day: Math.min(_daysSelected.day, daysInNewMonth) };
+  renderDaysList();
+}
+
+function selectDaysDate(year, month, day) {
+  _daysSelected = { year, month, day };
+  renderDaysList();
+}
+
+function daysCalendarHtml() {
+  const year = _daysCalYear, month = _daysCalMonth;
+  const startDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+  const dateKeys = new Set();
+  entriesCache.forEach((e) => {
+    const d = new Date(e.createdAt);
+    dateKeys.add(_dateKey(d.getFullYear(), d.getMonth(), d.getDate()));
+  });
+
+  const cells = [];
+  for (let i = startDow - 1; i >= 0; i--) cells.push({ day: daysInPrevMonth - i, muted: true });
+  for (let d = 1; d <= daysInMonth; d++) cells.push({ day: d, muted: false });
+  let trail = 1;
+  while (cells.length % 7 !== 0) cells.push({ day: trail++, muted: true });
+
+  const cellsHtml = cells.map((c) => {
+    if (c.muted) return `<div class="cal-cell muted">${c.day}</div>`;
+    const hasEntry = dateKeys.has(_dateKey(year, month, c.day));
+    const today = isRealToday(year, month, c.day);
+    const selected = !today && _daysSelected.year === year && _daysSelected.month === month && _daysSelected.day === c.day;
+    return `<button type="button" class="cal-cell${today ? ' today' : ''}${selected ? ' selected' : ''}" onclick="selectDaysDate(${year}, ${month}, ${c.day})">${c.day}${hasEntry ? '<span class="dot"></span>' : ''}</button>`;
+  }).join('');
+
+  return `
+    <div class="cal-header">
+      <button type="button" class="cal-nav-btn" aria-label="前の月" onclick="navDaysCalendar(-1)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <div class="cal-month-label">${year}年${month + 1}月</div>
+      <button type="button" class="cal-nav-btn" aria-label="次の月" onclick="navDaysCalendar(1)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+    <div class="cal-grid">
+      ${['日', '月', '火', '水', '木', '金', '土'].map((d) => `<div class="cal-dow">${d}</div>`).join('')}
+      ${cellsHtml}
+    </div>`;
+}
+
+// 選択中の日付(月日)を、記録のある最古の年まで遡って年ごとに比較する
+// (3年日記・5年日記のように、使い続けた年数だけ自然に行が増える)。
+function daysDetailHtml() {
+  const { year, month, day } = _daysSelected;
+  if (!entriesCache.length) return '';
+  const earliestYear = entriesCache.reduce((min, e) => Math.min(min, new Date(e.createdAt).getFullYear()), year);
+
+  const rows = [];
+  for (let y = year; y >= earliestYear; y--) {
+    const yearEntries = entriesCache
+      .filter((e) => {
+        const d = new Date(e.createdAt);
+        return d.getFullYear() === y && d.getMonth() === month && d.getDate() === day;
+      })
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const yearsAgo = year - y;
+    const yearLabel = yearsAgo === 0 ? (isRealToday(year, month, day) ? '今年(今日)' : '今年') : `${yearsAgo}年前`;
+    rows.push(`
+      <div class="year-row">
+        <div class="year-tag${yearEntries.length ? '' : ' muted-tag'}"><span class="dot"></span>${yearLabel}</div>
+        ${yearEntries.length ? `<div class="day-group">${yearEntries.map(entryCardHtml).join('')}</div>` : '<div class="empty-year">この日の記録はありません</div>'}
+      </div>`);
+  }
+
+  return `
+    <div class="days-detail-label">${month + 1}月${day}日の記録</div>
+    ${rows.join('')}`;
+}
+
 function renderDaysList() {
-  const entries = entriesCache.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  document.getElementById('days-empty').style.display = entries.length === 0 ? 'block' : 'none';
+  document.getElementById('days-empty').style.display = entriesCache.length === 0 ? 'block' : 'none';
 
   const active = activeBeans();
   if (_daysSelectedBeanId && !active.some((b) => b.id === _daysSelectedBeanId)) _daysSelectedBeanId = null;
@@ -1174,43 +1290,8 @@ function renderDaysList() {
   if (!_daysSelectedBeanId && active.length) _daysSelectedBeanId = active[0].id;
   updateQuickEntryBeanLabel();
 
-  const groups = [];
-  let currentLabel = null;
-  entries.forEach((entry) => {
-    const d = new Date(entry.createdAt);
-    const label = formatDayLabel(d);
-    if (label !== currentLabel) {
-      groups.push({ label, items: [] });
-      currentLabel = label;
-    }
-    groups[groups.length - 1].items.push(entry);
-  });
-
-  document.getElementById('days-list').innerHTML = groups.map((g) => `
-    <div class="day-group">
-      <div class="day-group-label">${g.label}</div>
-      ${g.items.map((entry) => {
-        const bean = beansCache.find((b) => b.id === entry.beanId);
-        const d = new Date(entry.createdAt);
-        const photos = entryPhotos(entry);
-        const activeIdx = photos.length ? (_entryPhotoIndex[entry.id] || 0) % photos.length : 0;
-        return `
-          <button class="entry-card" data-entry-id="${entry.id}">
-            <div class="entry-card-body">
-              <div class="entry-card-meta">${beanIconSvg(12)}${escapeHtml(bean ? bean.name : '削除済みの豆')} ・ ${formatTime(d)}</div>
-              ${entry.rating ? `<div class="entry-card-rating">${starsHtml(entry.rating, 12)}</div>` : ''}
-              <div class="entry-card-text">${escapeHtml(entry.text || '')}</div>
-              ${entry.brew ? `<div class="entry-card-brew">${escapeHtml(entry.brew)}</div>` : ''}
-            </div>
-            ${photos.length ? `
-              <div class="entry-photo-carousel">
-                <div class="entry-photo-frame" style="background-image:url(${photos[activeIdx]})" onclick="advanceEntryPhoto('${entry.id}', ${photos.length}, event)"></div>
-                ${photos.length > 1 ? `<div class="entry-photo-dots">${photos.map((_, i) => `<span class="entry-photo-dot${i === activeIdx ? ' active' : ''}"></span>`).join('')}</div>` : ''}
-              </div>` : ''}
-          </button>`;
-      }).join('')}
-    </div>
-  `).join('');
+  const container = document.getElementById('days-list');
+  container.innerHTML = entriesCache.length === 0 ? '' : daysCalendarHtml() + daysDetailHtml();
   wireLongPress(document.querySelectorAll('#days-list .entry-card'), (el) => openEntryActions(el.dataset.entryId));
 }
 

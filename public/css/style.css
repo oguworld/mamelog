@@ -343,6 +343,33 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 .entry-photo-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--sand); }
 .entry-photo-dot.active { background: var(--caramel); }
 
+/* ── 日々タブ: 月カレンダー+選択日の年またぎ比較(3年/5年日記対応) ── */
+.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.cal-month-label { font-size: 16px; font-weight: 700; color: var(--espresso); }
+.cal-nav-btn {
+  background: var(--warm-white); border: 0; border-radius: 50%; width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center; color: var(--espresso); cursor: pointer;
+}
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 20px; }
+.cal-dow { font-size: 11px; color: var(--text-muted); text-align: center; padding-bottom: 4px; }
+.cal-cell {
+  aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border-radius: 10px; font-size: 13px; color: var(--espresso); position: relative;
+  background: none; border: 0; cursor: pointer; font-family: inherit;
+}
+.cal-cell.muted { color: var(--text-muted); opacity: 0.4; cursor: default; }
+.cal-cell.today { background: var(--caramel); color: var(--warm-white); font-weight: 700; }
+.cal-cell.selected { background: var(--caramel-pale); font-weight: 700; }
+.cal-cell .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--caramel); margin-top: 2px; }
+.cal-cell.today .dot { background: var(--warm-white); }
+.days-detail-label { font-size: 15px; font-weight: 700; color: var(--espresso); margin-bottom: 10px; }
+.year-row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.year-tag { font-size: 12.5px; font-weight: 700; color: var(--caramel); display: flex; align-items: center; gap: 6px; }
+.year-tag.muted-tag { color: var(--text-muted); }
+.year-tag .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--caramel); }
+.year-tag.muted-tag .dot { background: var(--text-muted); }
+.empty-year { font-size: 12.5px; color: var(--text-muted); background: var(--warm-white); border-radius: var(--radius-btn); padding: 10px 12px; opacity: 0.7; }
+
 /* ── 豆カード展開時: 味レーダー・この豆の日々タイムライン ──
    基本情報(産地等)は長さがまちまちなため、レーダーより先(左)に置いて折り返しで
    表示する。レーダーは固定サイズで右側、align-items:centerで短い方を中央に揃える。 */
