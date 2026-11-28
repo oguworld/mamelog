@@ -596,7 +596,12 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
    y=0が画面物理上端と一致するため、固定40pxだけではステータスバーに近すぎる。
    .screen-headerと同じくenv(safe-area-inset-top)を加算して余白を確保する */
 #quick-entry-overlay, #entry-edit-overlay {
-  align-items: flex-start; padding-top: calc(40px + env(safe-area-inset-top, 0px));
+  /* align-items:centerにすると(Keyboard.resize:'none'のため)キーボード表示時に
+     下部のボタンが隠れる既知の問題があるため、flex-startのまま上余白を増やして
+     画面中央寄りに見せる(実機フィードバック、2026-11-28)。シート自身の
+     max-height+overflow-yが安全弁になるので、画面が低い端末でも溢れた分は
+     シート内でスクロールするだけで崩れない */
+  align-items: flex-start; padding-top: calc(15vh + env(safe-area-inset-top, 0px));
 }
 .confirm-dialog {
   background: var(--warm-white); border-radius: var(--radius-card); padding: 24px;
