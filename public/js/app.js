@@ -851,15 +851,15 @@ function beanCardHtml(bean) {
           <span class="label">今日のひとことで選べる</span>
           <button class="toggle-switch${bean.inUse !== false ? ' on' : ''}" onclick="toggleBeanInUse('${bean.id}', event)"><span class="knob"></span></button>
         </div>
-        <button class="quick-entry-from-bean-btn" onclick="openQuickEntryForBean('${bean.id}', event)">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          この豆にひとことを追加
-        </button>
         ${(tasteRadar || factRows.length) ? `
         <div class="taste-radar-row">
           ${factRows.length ? `<div class="taste-fact-list">${factRows.map(([k, v]) => `<div class="fact-row"><span class="fact-k">${k}</span><span class="fact-v">${escapeHtml(v)}</span></div>`).join('')}</div>` : ''}
           ${tasteRadar ? `<div class="taste-radar-wrap">${tasteRadar}</div>` : ''}
         </div>` : ''}
+        <button class="quick-entry-from-bean-btn" onclick="openQuickEntryForBean('${bean.id}', event)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          この豆にひとことを追加
+        </button>
         ${bean.flavorNotes ? `<div class="bean-card-expand-notes">${escapeHtml(bean.flavorNotes)}</div>` : ''}
         ${(!tasteRadar && !factRows.length && !bean.flavorNotes) ? '<div class="bean-card-expand-row" style="color:var(--text-muted)">詳細情報はまだありません</div>' : ''}
         ${beanTimelineHtml(bean.id)}
