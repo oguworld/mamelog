@@ -49,6 +49,16 @@
 - 分析結果はサーバーに保存しない(ステートレスなリレーのみ)。端末側では`settings.preferenceAnalysis`(localStorage、新規IndexedDBストアは作らない)に`{summary, recommendations, analyzedAt, basedOnCount}`として保存し、次回タブを開いたときに前回結果を表示する
 - レート制限: `recommendLimiter`(1分あたり5回、`/api/identify`より厳しい)
 
+## AI豆インサイト(豆カード展開時、2026-11-28追加)
+- エンドポイント: `POST /api/bean-insight`、リクエスト`{ entries: [{ text, rating, brew }, ...] }`(その豆1件分の記録のみ、画像・豆名・店名は含めない、最大50件)
+- モデル: `claude-sonnet-4-6`。web_searchは使わない。`tools`+`tool_choice: {type:'tool', name:'bean_insight'}`で構造化出力を強制
+- レスポンス: `{ comment }` のみ(60字程度の一言)。`/api/recommend`と違い複数豆の比較はしない、この豆単体の記録からの印象のみ
+- 対象データ: その豆に紐づく`entries`全件(★評価の有無は問わない)。最低3件から有効(好みタブの5件より緩め、1豆あたりの記録数は少なくなりがちなため)
+- 表示位置: 豆カード展開時、レーダーチャート/基本情報の下・「この豆にひとことを追加」ボタンの上
+- 送信は「AIにこの豆の傾向を聞く/再分析する」ボタンを明示的に押したときのみ(自動実行しない)
+- 分析結果はサーバーに保存しない。端末側では`bean.aiInsight`として`{comment, analyzedAt, basedOnCount}`をbeansストアに保存(新規ストアは作らない)。記録件数が`basedOnCount`と変わったら「新しい記録があります」と表示する
+- レート制限: `beanInsightLimiter`(1分あたり5回、`recommendLimiter`と同じ)
+
 ## カメラ
 `@capacitor/camera`を新規導入する(ネイティブ`<input capture>`方式は不採用。Capacitor WKWebView上での動作安定性とカメラ/ライブラリの明示選択UIのため)。iOS `Info.plist`に`NSCameraUsageDescription`・`NSPhotoLibraryUsageDescription`の追加が必須(CIワークフローにPlistBuddyステップを追加、SGBusNaviが位置情報キーを追加した時と同型の変更)。
 

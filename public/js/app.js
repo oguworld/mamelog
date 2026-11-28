@@ -813,6 +813,58 @@ async function toggleBeanInUse(beanId, event) {
   renderBeansList();
 }
 
+// この豆のひとこと記録をAIが読んで傾向・印象を一言コメントする機能。
+// 好みタブと同じく明示的なボタン操作のみ(自動実行しない)。最低件数は
+// 好みタブの5件より緩め(この豆単体の記録なので件数が少なくなりがちなため)。
+const MIN_BEAN_INSIGHT_ENTRIES = 3;
+let _beanInsightLoading = new Set();
+
+function beanInsightBoxHtml(bean, beanEntries) {
+  if (beanEntries.length < MIN_BEAN_INSIGHT_ENTRIES) return '';
+  const loading = _beanInsightLoading.has(bean.id);
+  const insight = bean.aiInsight;
+  const stale = insight && insight.basedOnCount !== beanEntries.length;
+  return `
+    <div class="bean-insight-box">
+      ${insight ? `
+        <div class="bean-insight-comment">${escapeHtml(insight.comment)}</div>
+        ${stale ? '<div class="bean-insight-stale">新しい記録があります</div>' : ''}
+        <button class="bean-insight-btn" onclick="runBeanInsight('${bean.id}', event)"${loading ? ' disabled' : ''}>${loading ? '分析中…' : '再分析する'}</button>
+      ` : `
+        <button class="bean-insight-btn primary" onclick="runBeanInsight('${bean.id}', event)"${loading ? ' disabled' : ''}>${loading ? '分析中…' : '✨ AIにこの豆の傾向を聞く'}</button>
+      `}
+    </div>`;
+}
+
+async function runBeanInsight(beanId, event) {
+  event.stopPropagation();
+  if (_beanInsightLoading.has(beanId)) return;
+  const bean = beansCache.find((b) => b.id === beanId);
+  if (!bean) return;
+  const beanEntries = entriesCache.filter((e) => e.beanId === beanId);
+  if (beanEntries.length < MIN_BEAN_INSIGHT_ENTRIES) return;
+  _beanInsightLoading.add(beanId);
+  renderBeansList();
+  try {
+    const res = await fetch(API_BASE + '/api/bean-insight', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entries: beanEntries.map((e) => ({ text: e.text || '', rating: e.rating || 0, brew: e.brew || '' })),
+      }),
+    });
+    if (!res.ok) throw new Error('bean-insight failed');
+    const data = await res.json();
+    bean.aiInsight = { comment: data.comment, analyzedAt: new Date().toISOString(), basedOnCount: beanEntries.length };
+    await dbPut('beans', bean);
+  } catch (_) {
+    showToast('分析に失敗しました');
+  } finally {
+    _beanInsightLoading.delete(beanId);
+    renderBeansList();
+  }
+}
+
 function beanCardHtml(bean) {
   const meta = [bean.origin, bean.roast, bean.process].filter(Boolean).join(' ・ ');
   const expanded = _expandedBeanIds.has(bean.id);
@@ -823,9 +875,8 @@ function beanCardHtml(bean) {
   if (bean.process) factRows.push(['精製方法', bean.process]);
   if (bean.purchaseDate) factRows.push(['購入日', bean.purchaseDate.slice(5).replace('-', '/')]);
   if (bean.brew) factRows.push(['淹れ方', bean.brew]);
-  const latestEntry = entriesCache
-    .filter((e) => e.beanId === bean.id)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  const beanEntries = entriesCache.filter((e) => e.beanId === bean.id);
+  const latestEntry = beanEntries.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
   const avgRating = computeBeanRating(bean.id);
 
   return `
@@ -856,6 +907,7 @@ function beanCardHtml(bean) {
           ${factRows.length ? `<div class="taste-fact-list">${factRows.map(([k, v]) => `<div class="fact-row"><span class="fact-k">${k}</span><span class="fact-v">${escapeHtml(v)}</span></div>`).join('')}</div>` : ''}
           ${tasteRadar ? `<div class="taste-radar-wrap">${tasteRadar}</div>` : ''}
         </div>` : ''}
+        ${beanInsightBoxHtml(bean, beanEntries)}
         <button class="quick-entry-from-bean-btn" onclick="openQuickEntryForBean('${bean.id}', event)">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           この豆にひとことを追加

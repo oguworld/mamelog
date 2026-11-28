@@ -76,8 +76,19 @@ const recommendLimiter = rateLimit({
   message: { error: 'Too many requests. Please wait a moment and try again.' },
 });
 
+// /api/bean-insightも/api/recommendと同じく明示的なボタン操作のみで呼ばれる
+// (豆カード展開時の自動実行はしない)ため、同じ厳しさにする。
+const beanInsightLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1分
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please wait a moment and try again.' },
+});
+
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // SPEC §4: 画像サイズ上限 約8MB
 const MAX_RECOMMEND_ENTRIES = 50; // /api/recommend に送るエントリ件数の上限
+const MAX_BEAN_INSIGHT_ENTRIES = 50; // /api/bean-insight に送るエントリ件数の上限
 
 const ROAST_VALUES = ['浅煎り', '中浅煎り', '中煎り', '中深煎り', '深煎り'];
 const PROCESS_VALUES = ['ウォッシュド', 'ナチュラル', 'ハニー', 'その他'];
@@ -139,6 +150,51 @@ const RECOMMEND_TOOL = {
     },
   },
 };
+
+const BEAN_INSIGHT_TOOL = {
+  name: 'bean_insight',
+  description: '特定の1つの豆について、ユーザー自身が書いた記録(ひとこと・評価・淹れ方)から読み取れる傾向や印象を一言で報告する。',
+  input_schema: {
+    type: 'object',
+    required: ['comment'],
+    properties: {
+      comment: { type: 'string', description: '記録から読み取れる傾向・印象を日本語60字程度の一言で(断定しすぎず、親しみのある客観的なトーン)' },
+    },
+  },
+};
+
+// 豆名・店名・写真は送らない(この豆単体の分析であってもデータ最小化方針は
+// /api/recommendと同じにする、設計書1参照)。web_searchは使わない。
+async function analyzeBeanInsight(entries) {
+  if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
+  const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+
+  const messages = [
+    {
+      role: 'user',
+      content: [{ type: 'text', text: JSON.stringify(entries) }],
+    },
+  ];
+
+  const res = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 512,
+    system: `あなたはコーヒー豆の記録アプリ「Bean Diary」のアシスタントです。
+ユーザーがある1つの豆について書いた記録(各要素は text[ひとこと本文]・rating[0〜5の評価、0.5刻み]・brew[淹れ方]のJSON配列)を受け取り、
+この豆についてユーザーがどう感じているか、記録から読み取れる傾向や印象を一言でまとめてください。
+重要な制約: 記録に書かれていないことを推測で付け足さないこと。実在の商品名・ブランド名は出さないこと(そもそも渡されません)。
+必ず bean_insight ツールを1回呼んで結果を報告してください。`,
+    messages,
+    tools: [BEAN_INSIGHT_TOOL],
+    tool_choice: { type: 'tool', name: 'bean_insight' },
+  });
+
+  if (res.stop_reason === 'refusal') throw new Error('request refused');
+
+  const toolUse = res.content?.find((b) => b.type === 'tool_use' && b.name === 'bean_insight');
+  if (!toolUse) throw new Error('bean_insight tool not called');
+  return toolUse.input;
+}
 
 // web_searchは使わない(実在商品を検索・提案させないための方針、設計書1参照)。
 // そのためpause_turnループは不要で、単発のmessages.create()のみで完結する。
@@ -263,6 +319,24 @@ app.post('/api/recommend', recommendLimiter, async (req, res) => {
   } catch (err) {
     console.error('[recommend] error', err);
     res.status(500).json({ error: 'failed to analyze preferences' });
+  }
+});
+
+app.post('/api/bean-insight', beanInsightLimiter, async (req, res) => {
+  try {
+    const { entries } = req.body || {};
+    if (!Array.isArray(entries) || entries.length === 0) {
+      return res.status(400).json({ error: 'entries must be a non-empty array' });
+    }
+    if (entries.length > MAX_BEAN_INSIGHT_ENTRIES) {
+      return res.status(400).json({ error: `entries must be at most ${MAX_BEAN_INSIGHT_ENTRIES} items` });
+    }
+
+    const result = await analyzeBeanInsight(entries);
+    res.json(result);
+  } catch (err) {
+    console.error('[bean-insight] error', err);
+    res.status(500).json({ error: 'failed to analyze bean' });
   }
 });
 
